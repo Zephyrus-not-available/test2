@@ -302,18 +302,8 @@
                     throw new Error('PIN not found. Please start over.');
                 }
 
-                // Generate device ID only when Confirm is clicked (not earlier)
-                // This ensures each device gets a unique ID at vote submission time
-                let deviceId = localStorage.getItem('votingDeviceId');
-                if (!deviceId) {
-                    // Generate new device ID
-                    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-                        deviceId = crypto.randomUUID();
-                    } else {
-                        deviceId = `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-                    }
-                    localStorage.setItem('votingDeviceId', deviceId);
-                }
+                // Always reuse persisted device ID; create once if missing
+                const deviceId = VotingApp.getDeviceId();
 
                 // Load all selections
                 const selections = VotingApp.loadSelectionsForSummary();
@@ -333,10 +323,9 @@
                 // Submit votes to database
                 await VotingApp.submitVotes({ pin, deviceId, votes });
 
-                // Clear localStorage after successful submission
+                // Clear vote selections and PIN, but keep deviceId to enforce one-device-one-vote
                 VotingApp.clearSelections();
                 localStorage.removeItem('votingPin');
-                localStorage.removeItem('votingDeviceId');
 
                 // Redirect to success page
                 window.location.href = SUCCESS_URL;

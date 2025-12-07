@@ -47,15 +47,19 @@ public class VotingService {
         Optional<Voter> existingDeviceVoter = voterRepository.findByDeviceIdWithLock(request.getDeviceId());
         if (existingDeviceVoter.isPresent()) {
             Voter existingVoter = existingDeviceVoter.get();
-            // Check if already voted in this category
-            if (voteRepository.existsByVoterAndCategory(existingVoter, request.getCategory())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, 
-                    "You have already voted in this category");
+            if (existingVoter.isHasVoted() || voteRepository.existsByVoter(existingVoter)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This device has already submitted a vote");
             }
         }
 
         // Step 2: Get or create voter by device ID (PIN can be shared)
         Voter voter = getOrCreateVoter(request.getPin(), request.getDeviceId());
+
+        if (voter.isHasVoted() || voteRepository.existsByVoter(voter)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This device has already submitted a vote");
+        }
 
         // Step 3: Check if voter already voted in this category (with lock)
         Optional<Vote> existingVote = voteRepository.findByVoterAndCategoryWithLock(voter, request.getCategory());
@@ -105,17 +109,19 @@ public class VotingService {
         Optional<Voter> existingDeviceVoter = voterRepository.findByDeviceIdWithLock(request.getDeviceId());
         if (existingDeviceVoter.isPresent()) {
             Voter existingVoter = existingDeviceVoter.get();
-            // Check if any of the requested categories already have votes
-            for (BulkVoteRequest.VoteItem voteItem : request.getVotes()) {
-                if (voteRepository.existsByVoterAndCategory(existingVoter, voteItem.getCategory())) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, 
-                        "You have already voted in category: " + voteItem.getCategory());
-                }
+            if (existingVoter.isHasVoted() || voteRepository.existsByVoter(existingVoter)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This device has already submitted votes");
             }
         }
 
         // Step 2: Get or create voter by device ID (PIN can be shared)
         Voter voter = getOrCreateVoter(request.getPin(), request.getDeviceId());
+
+        if (voter.isHasVoted() || voteRepository.existsByVoter(voter)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This device has already submitted votes");
+        }
 
         // Step 3: Validate all votes before processing
         for (BulkVoteRequest.VoteItem voteItem : request.getVotes()) {

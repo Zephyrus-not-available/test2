@@ -26,6 +26,8 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
 
     boolean existsByVoterAndCategory(Voter voter, Category category);
 
+    boolean existsByVoter(Voter voter);
+
     @Query("SELECT COUNT(v) FROM Vote v WHERE v.category = :category")
     long countByCategory(@Param("category") Category category);
 

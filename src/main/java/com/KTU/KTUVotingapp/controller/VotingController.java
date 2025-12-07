@@ -6,6 +6,11 @@ import com.KTU.KTUVotingapp.dto.VoteResponse;
 import com.KTU.KTUVotingapp.model.Category;
 import com.KTU.KTUVotingapp.service.VotingService;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +33,13 @@ public class VotingController {
      * Response: { "success": true, "message": "Vote submitted successfully" }
      */
     @PostMapping("/vote")
-    public ResponseEntity<VoteResponse> submitVote(@Valid @RequestBody VoteRequest request) {
+    public ResponseEntity<VoteResponse> submitVote(@Valid @RequestBody VoteRequest request, HttpServletRequest httpRequest) {
         try {
+            // Prefer server-side device cookie; otherwise derive from IP+UA hash
+            String resolvedDeviceId = resolveDeviceId(httpRequest);
+            if (resolvedDeviceId != null && !resolvedDeviceId.isBlank()) {
+                request.setDeviceId(resolvedDeviceId);
+            }
             votingService.submitVote(request);
             return ResponseEntity.ok(new VoteResponse(true, "Vote submitted successfully"));
         } catch (ResponseStatusException e) {
@@ -46,8 +56,13 @@ public class VotingController {
      * Request: { "deviceId": "...", "pin": "12345", "votes": [{ "category": "KING", "candidateNumber": 1 }, ...] }
      */
     @PostMapping("/bulk-vote")
-    public ResponseEntity<VoteResponse> submitBulkVotes(@Valid @RequestBody BulkVoteRequest request) {
+    public ResponseEntity<VoteResponse> submitBulkVotes(@Valid @RequestBody BulkVoteRequest request, HttpServletRequest httpRequest) {
         try {
+            // Prefer server-side device cookie; otherwise derive from IP+UA hash
+            String resolvedDeviceId = resolveDeviceId(httpRequest);
+            if (resolvedDeviceId != null && !resolvedDeviceId.isBlank()) {
+                request.setDeviceId(resolvedDeviceId);
+            }
             votingService.submitBulkVotes(request);
             return ResponseEntity.ok(new VoteResponse(true, "All votes submitted successfully"));
         } catch (ResponseStatusException e) {
@@ -84,6 +99,30 @@ public class VotingController {
     public ResponseEntity<Boolean> deviceHasVoted(@RequestParam String deviceId) {
         boolean hasVoted = votingService.deviceHasVoted(deviceId);
         return ResponseEntity.ok(hasVoted);
+    }
+
+    private String resolveDeviceId(HttpServletRequest request) {
+        // Enforce one vote per IP (covers new browsers/incognito on same machine/network)
+        return deriveIpOnlyId(request);
+    }
+
+    private String deriveIpOnlyId(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String ip = request.getRemoteAddr();
+        String source = (ip == null ? "" : ip);
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(source.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return source; // Fallback: raw source if hashing unavailable
+        }
     }
 }
 

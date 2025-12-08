@@ -29,5 +29,6 @@ COPY --from=build /workspace/${JAR_FILE} /app/app.jar
 # Expose application port
 EXPOSE 8080
 
-# Use exec form; distroless images don't include a shell
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Read PORT provided by Render (or default to 8080) and pass to Spring Boot
+# Use a shell form to allow environment interpolation for -Dserver.port
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar /app/app.jar"]

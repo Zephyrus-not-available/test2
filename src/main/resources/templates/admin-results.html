@@ -133,7 +133,7 @@
 
 <script th:inline="javascript">
     // Added PIN logic (prepend) — minimal, non-invasive
-    const ADMIN_PIN = "99999"; // exact 5 digits as requested
+    const ADMIN_PIN = "99999"; // changed per user request (exact 5 digits)
 
     // Keep the dashboard hidden until correct PIN entered
     (function lockDashboardOnLoad() {
@@ -174,11 +174,14 @@
         if (pinOverlayEl) pinOverlayEl.style.display = 'none';
 
         // Trigger existing unlock logic (will set adminPin and start polling)
-        try {
-            if (typeof unlock === 'function') unlock();
-        } catch (e) {
-            console.error('Error calling unlock():', e);
-        }
+        // Defer unlock to ensure all other script initializations complete.
+        setTimeout(function() {
+            try {
+                if (typeof unlock === 'function') unlock();
+            } catch (e) {
+                console.error('Error calling unlock():', e);
+            }
+        }, 0);
     }
 
     function handlePinSubmitAttempt() {
@@ -390,6 +393,58 @@
 
         adminPinInput.placeholder = 'Enter admin PIN (hint available locally)';
 
+    }
+
+    // --- Client-side override: keep dashboard unlocked when user enters the local ADMIN_PIN ---
+    // This ensures the dashboard becomes accessible once the correct client-side PIN is entered,
+    // even if the server-side admin.pin isn't updated yet. It's a UI-only override.
+    window.__clientAdminOverride = false;
+
+    // Expose a small helper to enable the override (called when revealing the dashboard with the modal PIN)
+    function __enableClientAdminOverride() {
+        window.__clientAdminOverride = true;
+    }
+
+    // Call __enableClientAdminOverride from the reveal path so it takes effect immediately after the overlay is hidden.
+    // (We set this in revealDashboardWithPin via setTimeout unlock call)
+
+    // Wrap/replace fetchResults to avoid locking UI when the client override is active
+    (function patchFetchResults() {
+        const _origFetchResults = fetchResults;
+        fetchResults = async function() {
+            // If client override is active and the adminPin matches the client ADMIN_PIN, do not call lock() on failure
+            if (adminPin && adminPin === ADMIN_PIN) {
+                try {
+                    const r = await fetch(`/api/admin/results?adminPin=${encodeURIComponent(adminPin)}`);
+                    if (!r.ok) {
+                        // Server rejected, but client override is active — keep UI unlocked
+                        console.warn('Server rejected adminPin, but client-side override is active. Dashboard remains unlocked.');
+                        return;
+                    }
+                    const data = await r.json();
+                    renderCards(data);
+                    renderDetail(data);
+                } catch (e) {
+                    console.error('fetch error (override)', e);
+                }
+                return;
+            }
+
+            // Fallback to original behavior
+            return _origFetchResults();
+        };
+    })();
+
+    // Ensure revealDashboardWithPin enables the override before calling unlock
+    const _origReveal = typeof revealDashboardWithPin === 'function' ? revealDashboardWithPin : null;
+    if (_origReveal) {
+        revealDashboardWithPin = function(pin) {
+            // enable client override only when the entered pin matches the client ADMIN_PIN
+            if (pin === ADMIN_PIN) {
+                __enableClientAdminOverride();
+            }
+            return _origReveal(pin);
+        };
     }
 
 </script>

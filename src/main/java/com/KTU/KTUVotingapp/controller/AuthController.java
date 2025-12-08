@@ -1,43 +1,40 @@
+
 package com.KTU.KTUVotingapp.controller;
 
-import com.KTU.KTUVotingapp.dto.VerifyPinRequest;
-import com.KTU.KTUVotingapp.dto.VerifyPinResponse;
-import com.KTU.KTUVotingapp.model.Voter;
-import com.KTU.KTUVotingapp.repository.VoterRepository;
-import jakarta.validation.Valid;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
 
-    private final VoterRepository voterRepository;
+    @Value("${voting.user-pin:12345}")
+    private String userPin;
 
-    public AuthController(VoterRepository voterRepository) {
-        this.voterRepository = voterRepository;
-    }
+    @Value("${voting.admin-pin:99999}")
+    private String adminPin;
 
-    /**
-     * Verify that the given PIN exists.
-     * For shared PINs (one PIN for all users), this just verifies the PIN is valid.
-     * Device-specific voting status is checked when votes are submitted.
-     * Returns 200 with status details, or 404 if the PIN is unknown.
-     */
     @PostMapping("/verify-pin")
-    public ResponseEntity<VerifyPinResponse> verifyPin(@Valid @RequestBody VerifyPinRequest request) {
-        // For shared PINs, we just check if any voter exists with this PIN
-        // The actual device-specific voting check happens during vote submission
-        boolean pinExists = voterRepository.existsByPin(request.getPin());
-        
-        if (!pinExists) {
-            return ResponseEntity.status(404).body(new VerifyPinResponse(false, false));
+    public ResponseEntity<?> verifyPin(@RequestBody PinRequest request) {
+        if (request == null || request.getPin() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing pin"));
         }
 
-        // PIN exists - return valid (device-specific voting status checked later)
-        return ResponseEntity.ok(new VerifyPinResponse(true, false));
+        String pin = request.getPin().trim();
+        if (pin.equals(userPin) || pin.equals(adminPin)) {
+            return ResponseEntity.ok(Map.of("valid", true, "alreadyVoted", false));
+        }
+
+        // Front-end expects 404 to mean "PIN does not exist"
+        return ResponseEntity.status(404).body("Pin not found");
+    }
+
+    public static class PinRequest {
+        private String pin;
+        public String getPin() { return pin; }
+        public void setPin(String pin) { this.pin = pin; }
     }
 }

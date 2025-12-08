@@ -1,154 +1,233 @@
 (() => {
-  // Allow overriding the API base via a meta tag (<meta name="api-base" ...>)
-  // or a global window.API_BASE. Falls back to the default /api path.
+  // --- Configuration ---
+  const STYLE_ID = 'voting-radio-grid-styles';
+  const DEFAULT_API_BASE = '/api';
   const API_BASE = (() => {
-    const metaBase = document.querySelector('meta[name="api-base"]')?.content;
-    const explicitBase = window.API_BASE || metaBase || '/api';
-    return explicitBase.endsWith('/') ? explicitBase.slice(0, -1) : explicitBase;
+    const meta = document.querySelector('meta[name="api-base"]')?.content;
+    const explicit = window.API_BASE || meta || DEFAULT_API_BASE;
+    return explicit.endsWith('/') ? explicit.slice(0, -1) : explicit;
   })();
   const CATEGORIES = ['KING', 'QUEEN', 'PRINCE', 'PRINCESS', 'COUPLE'];
 
-  const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-  const categoryKey = (category) => category.toLowerCase();
-  const selectionValueKey = (category) => `${categoryKey(category)}Selection`;
-  const selectedObjectKey = (category) => `selected${capitalize(category.toLowerCase())}`;
-
-  const placeholderImage = (candidate) => {
-    if (candidate && candidate.imageUrl && candidate.imageUrl.trim().length > 0) {
-      return candidate.imageUrl;
-    }
-    return 'https://placehold.co/300x400/f3f4f6/1e3a8a?text=Candidate';
+  // --- Utilities ---
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const debounce = (fn, ms = 80) => {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
   };
+  const capitalize = (s = '') => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+  // --- Local storage helpers ---
+  const deviceKey = 'votingDeviceId';
+  const pinKey = 'votingPin';
+  const selectionValueKey = (c) => `${c.toLowerCase()}Selection`;
+  const selectedObjectKey = (c) => `selected${capitalize(c.toLowerCase())}`;
 
   const getDeviceId = () => {
-    let deviceId = localStorage.getItem('votingDeviceId');
-    if (!deviceId) {
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        deviceId = crypto.randomUUID();
-      } else {
-        deviceId = `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      }
-      localStorage.setItem('votingDeviceId', deviceId);
+    let id = localStorage.getItem(deviceKey);
+    if (!id) {
+      id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      localStorage.setItem(deviceKey, id);
     }
-    return deviceId;
+    return id;
   };
-
-  const getStoredPin = () => localStorage.getItem('votingPin') || '';
-  const savePin = (pin) => localStorage.setItem('votingPin', pin);
+  const getStoredPin = () => localStorage.getItem(pinKey) || '';
+  const savePin = (p) => { if (typeof p === 'string') localStorage.setItem(pinKey, p); };
 
   const saveSelection = (category, candidate) => {
-    const valueKey = selectionValueKey(category);
-    const objectKey = selectedObjectKey(category);
-    localStorage.setItem(valueKey, String(candidate.candidateNumber));
-    localStorage.setItem(objectKey, JSON.stringify(candidate));
+    if (!category || !candidate) return;
+    localStorage.setItem(selectionValueKey(category), String(candidate.candidateNumber));
+    localStorage.setItem(selectedObjectKey(category), JSON.stringify(candidate));
   };
-
   const loadSelection = (category) => {
-    const objectKey = selectedObjectKey(category);
-    const valueKey = selectionValueKey(category);
-
-    const stored = localStorage.getItem(objectKey);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (err) {
-        // ignore parse errors and fall back to number
-      }
+    const obj = localStorage.getItem(selectedObjectKey(category));
+    if (obj) {
+      try { return JSON.parse(obj); } catch (e) {}
     }
-
-    const storedNumber = localStorage.getItem(valueKey);
-    if (storedNumber) {
-      return { candidateNumber: parseInt(storedNumber, 10) };
-    }
+    const num = localStorage.getItem(selectionValueKey(category));
+    if (num) return { candidateNumber: parseInt(num, 10) };
     return null;
   };
+  const clearSelections = () =>
+  CATEGORIES.forEach(c => {
+    localStorage.removeItem(selectionValueKey(c));
+    localStorage.removeItem(selectedObjectKey(c));
+  });
 
-  const clearSelections = () => {
-    CATEGORIES.forEach((category) => {
-      localStorage.removeItem(selectionValueKey(category));
-      localStorage.removeItem(selectedObjectKey(category));
-    });
-  };
-
-  const requirePinOrRedirect = () => {
-    const pin = getStoredPin();
-    if (!pin) {
-      window.location.href = '/pin';
-      return null;
-    }
-    return pin;
-  };
-
+  // --- API helpers ---
   const verifyPin = async (pin) => {
-    const response = await fetch(`${API_BASE}/auth/verify-pin`, {
+    const res = await fetch(`${API_BASE}/auth/verify-pin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin })
+      body: JSON.stringify({ pin }),
     });
-
-    if (response.status === 404) {
-      return { valid: false, alreadyVoted: false };
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Unable to verify PIN at the moment.');
-    }
-
-    return response.json();
+    if (res.status === 404) return { valid: false, alreadyVoted: false };
+    if (!res.ok) throw new Error(await res.text() || 'Unable to verify PIN');
+    return res.json();
   };
 
   const fetchCandidates = async (category) => {
-    const response = await fetch(`${API_BASE}/candidates/${category.toLowerCase()}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to load candidates.');
-    }
-    return response.json();
+    const res = await fetch(`${API_BASE}/candidates/${category.toLowerCase()}`);
+    if (!res.ok) throw new Error(await res.text() || 'Failed to load candidates');
+    return res.json();
   };
 
   const submitVotes = async ({ pin, deviceId, votes }) => {
-    const response = await fetch(`${API_BASE}/voting/bulk-vote`, {
+    const res = await fetch(`${API_BASE}/voting/bulk-vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin, deviceId, votes })
+      body: JSON.stringify({ pin, deviceId, votes }),
     });
 
-    const contentType = response.headers.get('content-type');
-    const isJson = contentType && contentType.includes('application/json');
-    const body = isJson ? await response.json() : await response.text();
+    const contentType = res.headers.get('content-type') || '';
+    const body = contentType.includes('application/json')
+      ? await res.json()
+      : await res.text();
 
-    if (!response.ok) {
-      const message = isJson && body && body.message ? body.message : (body || 'Vote submission failed.');
-      throw new Error(message);
+    if (!res.ok) {
+      const msg = body && body.message ? body.message : (body || 'Vote submission failed.');
+      throw new Error(msg);
     }
-
     return body;
   };
 
-  const initSelectionPage = async (config) => {
-    const { category, nextUrl, prevUrl } = config;
-    const pin = requirePinOrRedirect();
-    if (!pin) {
-      return;
-    }
-    // Device ID will be generated only when user clicks Confirm button
+  // --- RESPONSIVE CSS (FORCE ALWAYS 5 COLUMNS) ---
+  function injectStyles() {
+    if (document.head.querySelector(`#${STYLE_ID}`)) return;
 
-    const optionsContainer = document.getElementById('options-container');
+    const css = `
+      .radio-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 18px;
+        align-items: start;
+        justify-items: center;
+        padding: 8px;
+      }
+      .radio-label {
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        width:100%;
+        min-height:72px;
+        padding:8px;
+        box-sizing:border-box;
+        border-radius:8px;
+        cursor:pointer;
+        user-select:none;
+      }
+      .radio-label input[type="radio"] {
+        width:28px;
+        height:28px;
+        margin-top:8px;
+      }
+      .radio-grid .spacer {
+        visibility:hidden;
+        pointer-events:none;
+      }
+
+      /* BUTTONS MUST NEVER BE INSIDE GRID */
+      #next-btn,
+      #prev-btn {
+        display: block !important;
+        width: 100%;
+        margin-top: 20px;
+      }
+    `;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.appendChild(document.createTextNode(css));
+    document.head.appendChild(style);
+  }
+
+  // --- ALWAYS 5 COLUMN DESKTOP LAYOUT ---
+  function layoutOptions(container) {
+    if (!container) return;
+    injectStyles();
+
+    container.style.gridTemplateColumns = `repeat(5, 1fr)`;
+
+    // Remove old spacers
+    Array.from(container.querySelectorAll('.spacer')).forEach(s => s.remove());
+
+    const children = Array.from(container.children).filter(n => n.nodeType === 1);
+    const total = children.length;
+
+    if (total <= 5) return;
+
+    const bottomCount = total - 5;
+    if (bottomCount <= 0 || bottomCount >= 5) return;
+
+    const offset = Math.floor((5 - bottomCount) / 2);
+    const firstBottom = container.children[5] || null;
+
+    for (let i = 0; i < offset; i++) {
+      const spacer = document.createElement('div');
+      spacer.className = 'spacer';
+      container.insertBefore(spacer, firstBottom);
+    }
+  }
+
+  const debouncedLayout = debounce(() => {
+    const c = document.getElementById('options-container');
+    if (c) layoutOptions(c);
+  }, 100);
+
+  window.addEventListener('resize', debouncedLayout);
+
+  function observeContainer(id = 'options-container') {
+    const container = document.getElementById(id);
+    if (!container) return;
+
+    layoutOptions(container);
+
+    const mo = new MutationObserver(() => {
+      clearTimeout(container.__layoutTimeout);
+      container.__layoutTimeout = setTimeout(() => layoutOptions(container), 60);
+    });
+
+    mo.observe(container, { childList: true });
+    container.__layoutObserver = mo;
+  }
+
+  // --- Selection Page Init ---
+  async function initSelectionPage({ category, nextUrl, prevUrl } = {}) {
+    const pin = getStoredPin();
+    if (!pin) { window.location.href = '/pin'; return; }
+
+    const container = document.getElementById('options-container');
     const errorModal = document.getElementById('selection-error-modal');
     const nextBtn = document.getElementById('next-btn');
+    const prevBtn = document.getElementById('prev-btn');
     const candidateImage = document.getElementById('candidate-image');
     const candidateNumber = document.getElementById('candidate-number');
     const candidateName = document.getElementById('candidate-name');
     const candidateDepartment = document.getElementById('candidate-department');
 
+    // ⭐ NEW FIX: Ensure buttons NEVER live inside the grid container
+    const ensureButtonsOutside = () => {
+      if (container && nextBtn && container.contains(nextBtn)) {
+        container.after(nextBtn);
+      }
+      if (container && prevBtn && container.contains(prevBtn)) {
+        nextBtn.after(prevBtn);
+      }
+    };
+    ensureButtonsOutside();
+
     let candidates = [];
     try {
       candidates = await fetchCandidates(category);
     } catch (err) {
-      if (optionsContainer) {
-        optionsContainer.innerHTML = `<p class="text-red-600 text-center">${err.message}</p>`;
-      }
+      if (container)
+      container.innerHTML = `<p class="text-red-600 text-center">${err.message}</p>`;
       if (nextBtn) {
         nextBtn.disabled = true;
         nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -157,9 +236,8 @@
     }
 
     if (!Array.isArray(candidates) || candidates.length === 0) {
-      if (optionsContainer) {
-        optionsContainer.innerHTML = '<p class="text-gray-700 text-center">No candidates available.</p>';
-      }
+      if (container)
+      container.innerHTML = `<p class="text-gray-700 text-center">No candidates available.</p>`;
       if (nextBtn) {
         nextBtn.disabled = true;
         nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -167,30 +245,25 @@
       return;
     }
 
-    let selectedNumber = loadSelection(category)?.candidateNumber;
+    let selectedNumber = loadSelection(category)?.candidateNumber || null;
+
+    const placeholderImage = (candidate) =>
+    candidate?.imageUrl?.trim()
+      ? candidate.imageUrl
+      : 'https://placehold.co/300x400/f3f4f6/1e3a8a?text=Candidate';
 
     const updateCandidateDisplay = (candidate) => {
-      if (!candidate) {
-        return;
-      }
-      if (candidateImage) {
-        candidateImage.src = placeholderImage(candidate);
-      }
-      if (candidateNumber) {
-        candidateNumber.textContent = `No ${candidate.candidateNumber}`;
-      }
-      if (candidateName) {
-        candidateName.textContent = candidate.name || '';
-      }
-      if (candidateDepartment) {
-        candidateDepartment.textContent = candidate.department || '';
-      }
+      if (!candidate) return;
+      if (candidateImage) candidateImage.src = placeholderImage(candidate);
+      if (candidateNumber) candidateNumber.textContent = `No ${candidate.candidateNumber}`;
+      if (candidateName) candidateName.textContent = candidate.name || '';
+      if (candidateDepartment)
+      candidateDepartment.textContent = candidate.department || '';
     };
 
     const updateNextButton = () => {
-      if (!nextBtn) {
-        return;
-      }
+      if (!nextBtn) return;
+
       if (selectedNumber) {
         nextBtn.style.opacity = '1';
         nextBtn.style.cursor = 'pointer';
@@ -202,103 +275,92 @@
       }
     };
 
-    const renderOptions = () => {
-      if (!optionsContainer) {
-        return;
-      }
-      optionsContainer.innerHTML = '';
-      optionsContainer.classList.add('radio-grid');
+    // Render Options
+    if (container) {
+      container.innerHTML = '';
+      container.classList.add('radio-grid');
 
       candidates.forEach((candidate) => {
         const label = document.createElement('label');
         label.className = 'radio-label';
         label.htmlFor = `option-${candidate.candidateNumber}`;
-
         label.innerHTML = `
           <span class="text-sm font-medium text-gray-700">${candidate.candidateNumber}</span>
-          <input type="radio" id="option-${candidate.candidateNumber}" name="selection" value="${candidate.candidateNumber}" class="radio-custom-selection">
+          <input type="radio" id="option-${candidate.candidateNumber}" name="selection" value="${candidate.candidateNumber}" />
         `;
-
-        optionsContainer.appendChild(label);
+        container.appendChild(label);
       });
 
-      optionsContainer.querySelectorAll('input[name="selection"]').forEach((input) => {
-        input.addEventListener('change', (event) => {
-          selectedNumber = parseInt(event.target.value, 10);
-          const candidate = candidates.find((c) => c.candidateNumber === selectedNumber);
-          if (candidate) {
-            saveSelection(category, candidate);
-            updateCandidateDisplay(candidate);
+      layoutOptions(container);
+
+      container.querySelectorAll('input[name="selection"]').forEach((input) => {
+        input.addEventListener('change', (evt) => {
+          selectedNumber = parseInt(evt.target.value, 10);
+          const cand = candidates.find(c => c.candidateNumber === selectedNumber);
+
+          if (cand) {
+            saveSelection(category, cand);
+            updateCandidateDisplay(cand);
           }
           updateNextButton();
         });
       });
-    };
-
-    renderOptions();
-
-    // Only auto-select if there's a previously saved selection
-    if (selectedNumber) {
-      const savedCandidate = candidates.find((c) => c.candidateNumber === selectedNumber);
-      if (savedCandidate) {
-        const initialInput = document.querySelector(`input[name="selection"][value="${selectedNumber}"]`);
-        if (initialInput) {
-          initialInput.checked = true;
-        }
-        updateCandidateDisplay(savedCandidate);
-      } else {
-        // Saved selection doesn't match any candidate, clear it
-        selectedNumber = null;
-        updateNextButton();
-      }
-    } else {
-      // No previous selection - don't auto-select anything
-      selectedNumber = null;
-      updateNextButton();
     }
+
+    // Restore saved selection
+    if (selectedNumber) {
+      const saved = candidates.find(c => c.candidateNumber === selectedNumber);
+      if (saved) {
+        const input = document.querySelector(
+          `input[name="selection"][value="${selectedNumber}"]`
+        );
+        if (input) input.checked = true;
+        updateCandidateDisplay(saved);
+      } else selectedNumber = null;
+    }
+
+    updateNextButton();
 
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
         if (!selectedNumber) {
-          if (errorModal) {
-            errorModal.classList.remove('hidden');
-          }
+          if (errorModal) errorModal.classList.remove('hidden');
           return;
         }
-        const candidate = candidates.find((c) => c.candidateNumber === selectedNumber);
-        if (candidate) {
-          saveSelection(category, candidate);
-        }
-        window.location.href = nextUrl;
+
+        const cand = candidates.find(c => c.candidateNumber === selectedNumber);
+        if (cand) saveSelection(category, cand);
+
+        if (nextUrl) window.location.href = nextUrl;
       });
     }
 
-    if (prevUrl) {
-      const prevBtn = document.getElementById('prev-btn');
-      if (prevBtn) {
-        prevBtn.addEventListener('click', () => window.location.href = prevUrl);
-      }
-    }
+    if (prevBtn && prevUrl)
+    prevBtn.addEventListener('click', () => (window.location.href = prevUrl));
 
-    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const targetId = btn.getAttribute('data-close-modal');
-        const modal = document.getElementById(targetId);
-        if (modal) {
-          modal.classList.add('hidden');
-        }
-      });
-    });
-  };
+    document.querySelectorAll('[data-close-modal]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-close-modal');
+      const m = document.getElementById(id);
+      if (m) m.classList.add('hidden');
+    })
+    );
+  }
 
-  const loadSelectionsForSummary = () => {
-    return CATEGORIES.map((category) => ({
-      category,
-      selection: loadSelection(category)
-    }));
-  };
+  // --- Init ---
+  function initAuto() {
+    injectStyles();
+    observeContainer('options-container');
+  }
 
-  window.VotingApp = {
+  if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', initAuto);
+  else initAuto();
+
+  // --- Public API ---
+  window.VotingApp = Object.assign(window.VotingApp || {}, {
+    API_BASE,
+    CATEGORIES,
     getDeviceId,
     getStoredPin,
     savePin,
@@ -307,10 +369,12 @@
     submitVotes,
     saveSelection,
     loadSelection,
-    loadSelectionsForSummary,
+    loadSelectionsForSummary: () => CATEGORIES.map(c => ({
+      category: c,
+      selection: loadSelection(c),
+    })),
     clearSelections,
     initSelectionPage,
-    CATEGORIES
-  };
+    layoutOptions,
+  });
 })();
-

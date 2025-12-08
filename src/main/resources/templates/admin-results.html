@@ -18,6 +18,22 @@
 
 <body class="bg-gray-50 text-gray-800">
 
+    <!-- PIN overlay (added) -->
+    <div id="pinOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div class="bg-white rounded-lg p-6 w-[420px] max-w-full mx-4 shadow-lg">
+            <h2 class="text-lg font-semibold mb-2">Enter Admin PIN</h2>
+            <p class="text-sm text-gray-600 mb-4">Please enter the 5-digit admin PIN to unlock the dashboard.</p>
+            <div class="mb-3">
+                <input id="adminPinModalInput" type="password" maxlength="5" inputmode="numeric" pattern="[0-9]*" class="mt-1 block w-full rounded border-gray-200 p-2" placeholder="•••••" autofocus />
+                <div id="pinError" class="mt-2 text-sm text-red-600" style="display:none;"></div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button id="pinSubmitBtn" class="px-3 py-2 rounded bg-indigo-600 text-white">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+
 <div class="min-h-screen flex flex-col">
 
     <header class="bg-white shadow">
@@ -115,8 +131,80 @@
 </div>
 
 
-
 <script th:inline="javascript">
+    // Added PIN logic (prepend) — minimal, non-invasive
+    const ADMIN_PIN = "99999"; // exact 5 digits as requested
+
+    // Keep the dashboard hidden until correct PIN entered
+    (function lockDashboardOnLoad() {
+        const mainEl = document.querySelector('.min-h-screen');
+        if (mainEl) {
+            mainEl.style.display = 'none';
+        }
+    })();
+
+    // Modal element references
+    const pinOverlayEl = document.getElementById('pinOverlay');
+    const pinInputEl = document.getElementById('adminPinModalInput');
+    const pinErrorEl = document.getElementById('pinError');
+    const pinSubmitBtn = document.getElementById('pinSubmitBtn');
+
+    function showPinError(msg) {
+        pinErrorEl.textContent = msg;
+        pinErrorEl.style.display = 'block';
+    }
+
+    function clearPinError() {
+        pinErrorEl.textContent = '';
+        pinErrorEl.style.display = 'none';
+    }
+
+    function revealDashboardWithPin(pin) {
+        // Set the existing sidebar input so other code uses the correct adminPin
+        const sidebarInput = document.getElementById('adminPinInput');
+        if (sidebarInput) sidebarInput.value = pin;
+
+        // Reveal UI
+        const mainEl = document.querySelector('.min-h-screen');
+        if (mainEl) {
+            mainEl.style.display = '';
+        }
+
+        // Hide overlay
+        if (pinOverlayEl) pinOverlayEl.style.display = 'none';
+
+        // Trigger existing unlock logic (will set adminPin and start polling)
+        try {
+            if (typeof unlock === 'function') unlock();
+        } catch (e) {
+            console.error('Error calling unlock():', e);
+        }
+    }
+
+    function handlePinSubmitAttempt() {
+        clearPinError();
+        const val = (pinInputEl && pinInputEl.value) ? pinInputEl.value.trim() : '';
+        if (!/^[0-9]{5}$/.test(val)) {
+            showPinError('PIN must be exactly 5 digits.');
+            return;
+        }
+        if (val === ADMIN_PIN) {
+            revealDashboardWithPin(val);
+        } else {
+            showPinError('Incorrect PIN. Access denied.');
+            if (pinInputEl) pinInputEl.value = '';
+            if (pinInputEl) pinInputEl.focus();
+        }
+    }
+
+    if (pinSubmitBtn) pinSubmitBtn.addEventListener('click', handlePinSubmitAttempt);
+    if (pinInputEl) pinInputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handlePinSubmitAttempt();
+        }
+    });
+
 
     const resultsContainer = document.getElementById('resultsContainer');
 
@@ -308,4 +396,4 @@
 
 </body>
 
-</html> when i put correct pin for admin , it not reach to admin page fix this
+</html>

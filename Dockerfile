@@ -1,34 +1,34 @@
 # =====================================================================
 # Multi-stage Dockerfile for KTU Voting Application
 # Builder: Maven with Eclipse Temurin 21
-# Final: Minimal distroless Java 21 image (small runtime)
+# Final: Minimal Java 21 runtime
 # =====================================================================
 
 # --- Build stage -------------------------------------------------------
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
-# Copy pom first to leverage Docker layer caching for dependencies
+# Copy pom first for caching
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# Copy source and build the application (skip tests for faster builds)
+# Copy source and build (skip tests)
 COPY src ./src
 RUN mvn -B clean package -DskipTests
 
-# --- Runtime stage (minimal) -------------------------------------------
-# Use the official Eclipse Temurin JRE 21 image as a small, supported runtime.
-# Distroless Java 21 images may not be available in all registries, so use Temurin.
+# --- Runtime stage -----------------------------------------------------
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-# Default JAR location from the build stage; can be overridden with --build-arg
+# Copy generated JAR from build stage
 ARG JAR_FILE=target/*.jar
 COPY --from=build /workspace/${JAR_FILE} /app/app.jar
 
-# Expose application port
+# Expose app port
 EXPOSE 8080
 
-# Read PORT provided by Render (or default to 8080) and pass to Spring Boot
-# Use a shell form to allow environment interpolation for -Dserver.port
+# IMPORTANT: Activate prod profile for Render
+ENV SPRING_PROFILES_ACTIVE=prod
+
+# Run Spring Boot with port provided by Render
 ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar /app/app.jar"]

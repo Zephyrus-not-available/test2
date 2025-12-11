@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -39,12 +38,20 @@ public class VotingService {
      * Submit a single vote with pessimistic locking and transaction management.
      * Uses READ_COMMITTED isolation level for optimal performance with consistency.
      * Supports shared PINs - multiple devices can use the same PIN.
+     *
+     * Surgical change: remove explicit pessimistic locking calls to reduce long-lived DB locks
+     * under high concurrency. Rely on DB unique constraints and DataIntegrityViolationException
+     * to detect duplicates. This reduces transaction contention and moves locking responsibility
+     * back to the DB (single responsibility) instead of the service.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     @CacheEvict(value = {"results", "candidates"}, allEntries = true)
     public void submitVote(VoteRequest request) {
-        // Step 1: Check device ID with pessimistic lock (device ID is unique, not PIN)
-        Optional<Voter> existingDeviceVoter = voterRepository.findByDeviceIdWithLock(request.getDeviceId());
+        // NOTE: removed pessimistic locking reads to shorten transaction duration and avoid
+        // heavy lock contention. Use non-locking checks and let DB constraints guard uniqueness.
+
+        // Step 1: Check device ID existence (non-locking quick check)
+        Optional<Voter> existingDeviceVoter = voterRepository.findByDeviceId(request.getDeviceId());
         if (existingDeviceVoter.isPresent()) {
             Voter existingVoter = existingDeviceVoter.get();
             if (existingVoter.isHasVoted() || voteRepository.existsByVoter(existingVoter)) {
@@ -61,18 +68,17 @@ public class VotingService {
                 "This device has already submitted a vote");
         }
 
-        // Step 3: Check if voter already voted in this category (with lock)
-        Optional<Vote> existingVote = voteRepository.findByVoterAndCategoryWithLock(voter, request.getCategory());
-        if (existingVote.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+        // Step 3: Check if voter already voted in this category (non-locking existence check)
+        if (voteRepository.existsByVoterAndCategory(voter, request.getCategory())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "You have already voted in this category");
         }
 
         // Step 4: Get candidate
         Candidate candidate = candidateRepository.findByCategoryAndCandidateNumber(
                 request.getCategory(), request.getCandidateNumber())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                    "Candidate not found for category " + request.getCategory() + 
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Candidate not found for category " + request.getCategory() +
                     " and number " + request.getCandidateNumber()));
 
         // Step 5: Create and save vote (database constraint will prevent duplicates)
@@ -80,9 +86,8 @@ public class VotingService {
             Vote vote = new Vote(voter, candidate, request.getCategory());
             voteRepository.save(vote);
 
-            // Update candidate vote count
-            candidate.incrementVoteCount();
-            candidateRepository.save(candidate);
+            // Atomically increment candidate vote count in DB to avoid lost updates
+            candidateRepository.incrementVoteCount(candidate.getId());
 
             // Update voter status
             if (!voter.isHasVoted()) {
@@ -92,7 +97,7 @@ public class VotingService {
             }
         } catch (DataIntegrityViolationException e) {
             // Database constraint violation - handle gracefully
-            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Duplicate vote detected. You may have already voted in this category.");
         }
     }
@@ -101,12 +106,14 @@ public class VotingService {
      * Submit multiple votes in a single transaction (bulk voting).
      * All votes are processed atomically - either all succeed or all fail.
      * Supports shared PINs - multiple devices can use the same PIN.
+     *
+     * Surgical change: same approach as above, avoid pessimistic locking reads.
      */
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     @CacheEvict(value = {"results", "candidates"}, allEntries = true)
     public void submitBulkVotes(BulkVoteRequest request) {
-        // Step 1: Check device ID with pessimistic lock (device ID is unique, not PIN)
-        Optional<Voter> existingDeviceVoter = voterRepository.findByDeviceIdWithLock(request.getDeviceId());
+        // Step 1: Check device ID existence (non-locking)
+        Optional<Voter> existingDeviceVoter = voterRepository.findByDeviceId(request.getDeviceId());
         if (existingDeviceVoter.isPresent()) {
             Voter existingVoter = existingDeviceVoter.get();
             if (existingVoter.isHasVoted() || voteRepository.existsByVoter(existingVoter)) {
@@ -127,15 +134,15 @@ public class VotingService {
         for (BulkVoteRequest.VoteItem voteItem : request.getVotes()) {
             // Check if already voted in this category
             if (voteRepository.existsByVoterAndCategory(voter, voteItem.getCategory())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "You have already voted in category: " + voteItem.getCategory());
             }
 
             // Validate candidate exists
             candidateRepository.findByCategoryAndCandidateNumber(
                     voteItem.getCategory(), voteItem.getCandidateNumber())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                        "Candidate not found for category " + voteItem.getCategory() + 
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Candidate not found for category " + voteItem.getCategory() +
                         " and number " + voteItem.getCandidateNumber()));
         }
 
@@ -149,8 +156,8 @@ public class VotingService {
                 Vote vote = new Vote(voter, candidate, voteItem.getCategory());
                 voteRepository.save(vote);
 
-                candidate.incrementVoteCount();
-                candidateRepository.save(candidate);
+                // Atomically increment candidate vote count in DB
+                candidateRepository.incrementVoteCount(candidate.getId());
             }
 
             // Update voter status
@@ -160,7 +167,7 @@ public class VotingService {
                 voterRepository.save(voter);
             }
         } catch (DataIntegrityViolationException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Duplicate vote detected. Transaction rolled back.");
         }
     }
@@ -169,11 +176,15 @@ public class VotingService {
      * Get or create voter with pessimistic locking to prevent race conditions.
      * Supports shared PINs - multiple devices can use the same PIN.
      * Device ID is unique, PIN can be shared across multiple devices.
+     *
+     * Surgical change: avoid acquiring pessimistic locks here. Try to insert and on
+     * unique constraint violation, read the existing record. This reduces lock time and
+     * reliance on application-side locking.
      */
     private Voter getOrCreateVoter(String pin, String deviceId) {
-        // Find by device ID first (device ID is unique)
-        Optional<Voter> voterOpt = voterRepository.findByDeviceIdWithLock(deviceId);
-        
+        // Find by device ID first (non-locking quick check)
+        Optional<Voter> voterOpt = voterRepository.findByDeviceId(deviceId);
+
         if (voterOpt.isPresent()) {
             // Device already exists - return it
             return voterOpt.get();
@@ -186,9 +197,9 @@ public class VotingService {
             return voterRepository.save(newVoter);
         } catch (DataIntegrityViolationException e) {
             // Race condition - another thread created the voter with same device ID
-            // Retry by finding it
-            return voterRepository.findByDeviceIdWithLock(deviceId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, 
+            // Retry by finding it (non-locking)
+            return voterRepository.findByDeviceId(deviceId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "Failed to create voter. Please try again."));
         }
     }
@@ -206,4 +217,3 @@ public class VotingService {
         return voterOpt.isPresent() && voterOpt.get().isHasVoted();
     }
 }
-

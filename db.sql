@@ -54,23 +54,63 @@ CREATE INDEX IF NOT EXISTS idx_category      ON votes(category);
 CREATE INDEX IF NOT EXISTS idx_voter_category ON votes(voter_id, category);
 
 -- 3) Seed candidates (idempotent)
+-- 3) Seed candidates (idempotent)
 INSERT INTO candidates (category, candidate_number, name, department, image_url, vote_count)
 VALUES
+    -- KING
     ('KING', 1, 'Candidate King 1', 'Computer Science', '/images/king1.jpg', 0),
     ('KING', 2, 'Candidate King 2', 'Electronics', '/images/king2.jpg', 0),
     ('KING', 3, 'Candidate King 3', 'Mechanical', '/images/king3.jpg', 0),
+    ('KING', 4, 'Candidate King 4', 'Civil Engineering', '/images/king4.jpg', 0),
+    ('KING', 5, 'Candidate King 5', 'Architecture', '/images/king5.jpg', 0),
+    ('KING', 6, 'Candidate King 6', 'Chemical Engineering', '/images/king6.jpg', 0),
+    ('KING', 7, 'Candidate King 7', 'Information Technology', '/images/king7.jpg', 0),
+    ('KING', 8, 'Candidate King 8', 'Electrical Engineering', '/images/king8.jpg', 0),
+    ('KING', 9, 'Candidate King 9', 'Mining Engineering', '/images/king9.jpg', 0),
+
+    -- QUEEN
     ('QUEEN', 1, 'Candidate Queen 1', 'Computer Science', '/images/queen1.jpg', 0),
     ('QUEEN', 2, 'Candidate Queen 2', 'Electronics', '/images/queen2.jpg', 0),
     ('QUEEN', 3, 'Candidate Queen 3', 'Mechanical', '/images/queen3.jpg', 0),
-    ('PRINCE', 1, 'Candidate Prince 1', 'Computer Science', '/images/prince1.jpg', 0),
-    ('PRINCE', 2, 'Candidate Prince 2', 'Electronics', '/images/prince2.jpg', 0),
-    ('PRINCE', 3, 'Candidate Prince 3', 'Mechanical', '/images/prince3.jpg', 0),
-    ('PRINCESS', 1, 'Candidate Princess 1', 'Computer Science', '/images/princess1.jpg', 0),
-    ('PRINCESS', 2, 'Candidate Princess 2', 'Electronics', '/images/princess2.jpg', 0),
-    ('PRINCESS', 3, 'Candidate Princess 3', 'Mechanical', '/images/princess3.jpg', 0),
+    ('QUEEN', 4, 'Candidate Queen 4', 'Civil Engineering', '/images/queen4.jpg', 0),
+    ('QUEEN', 5, 'Candidate Queen 5', 'Architecture', '/images/queen5.jpg', 0),
+    ('QUEEN', 6, 'Candidate Queen 6', 'Chemical Engineering', '/images/queen6.jpg', 0),
+    ('QUEEN', 7, 'Candidate Queen 7', 'Information Technology', '/images/queen7.jpg', 0),
+    ('QUEEN', 8, 'Candidate Queen 8', 'Electrical Engineering', '/images/queen8.jpg', 0),
+    ('QUEEN', 9, 'Candidate Queen 9', 'Mining Engineering', '/images/queen9.jpg', 0),
+
+    -- PRINCE (Now uses KING details)
+    ('PRINCE', 1, 'Candidate King 1', 'Computer Science', '/images/king1.jpg', 0),
+    ('PRINCE', 2, 'Candidate King 2', 'Electronics', '/images/king2.jpg', 0),
+    ('PRINCE', 3, 'Candidate King 3', 'Mechanical', '/images/king3.jpg', 0),
+    ('PRINCE', 4, 'Candidate King 4', 'Civil Engineering', '/images/king4.jpg', 0),
+    ('PRINCE', 5, 'Candidate King 5', 'Architecture', '/images/king5.jpg', 0),
+    ('PRINCE', 6, 'Candidate King 6', 'Chemical Engineering', '/images/king6.jpg', 0),
+    ('PRINCE', 7, 'Candidate King 7', 'Information Technology', '/images/king7.jpg', 0),
+    ('PRINCE', 8, 'Candidate King 8', 'Electrical Engineering', '/images/king8.jpg', 0),
+    ('PRINCE', 9, 'Candidate King 9', 'Mining Engineering', '/images/king9.jpg', 0),
+
+    -- PRINCESS (Now uses QUEEN details)
+    ('PRINCESS', 1, 'Candidate Queen 1', 'Computer Science', '/images/queen1.jpg', 0),
+    ('PRINCESS', 2, 'Candidate Queen 2', 'Electronics', '/images/queen2.jpg', 0),
+    ('PRINCESS', 3, 'Candidate Queen 3', 'Mechanical', '/images/queen3.jpg', 0),
+    ('PRINCESS', 4, 'Candidate Queen 4', 'Civil Engineering', '/images/queen4.jpg', 0),
+    ('PRINCESS', 5, 'Candidate Queen 5', 'Architecture', '/images/queen5.jpg', 0),
+    ('PRINCESS', 6, 'Candidate Queen 6', 'Chemical Engineering', '/images/queen6.jpg', 0),
+    ('PRINCESS', 7, 'Candidate Queen 7', 'Information Technology', '/images/queen7.jpg', 0),
+    ('PRINCESS', 8, 'Candidate Queen 8', 'Electrical Engineering', '/images/queen8.jpg', 0),
+    ('PRINCESS', 9, 'Candidate Queen 9', 'Mining Engineering', '/images/queen9.jpg', 0),
+
+    -- COUPLE
     ('COUPLE', 1, 'Couple 1', 'Computer Science', '/images/couple1.jpg', 0),
     ('COUPLE', 2, 'Couple 2', 'Electronics', '/images/couple2.jpg', 0),
-    ('COUPLE', 3, 'Couple 3', 'Mechanical', '/images/couple3.jpg', 0)
+    ('COUPLE', 3, 'Couple 3', 'Mechanical', '/images/couple3.jpg', 0),
+    ('COUPLE', 4, 'Couple 4', 'Civil Engineering', '/images/couple4.jpg', 0),
+    ('COUPLE', 5, 'Couple 5', 'Architecture', '/images/couple5.jpg', 0),
+    ('COUPLE', 6, 'Couple 6', 'Chemical Engineering', '/images/couple6.jpg', 0),
+    ('COUPLE', 7, 'Couple 7', 'Information Technology', '/images/couple7.jpg', 0),
+    ('COUPLE', 8, 'Couple 8', 'Electrical Engineering', '/images/couple8.jpg', 0),
+    ('COUPLE', 9, 'Couple 9', 'Mining Engineering', '/images/couple9.jpg', 0)
 ON CONFLICT (category, candidate_number) DO NOTHING;
 
 -- 4) Seed voters for testing (optional - for shared PIN system)

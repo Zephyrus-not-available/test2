@@ -323,11 +323,7 @@
                 // Submit votes to database
                 await VotingApp.submitVotes({ pin, deviceId, votes });
 
-                // Clear vote selections and PIN, but keep deviceId to enforce one-device-one-vote
-                VotingApp.clearSelections();
-                localStorage.removeItem('votingPin');
-
-                // Redirect to success page
+                // Redirect to success page (do not clear selections here so success page can display them)
                 window.location.href = SUCCESS_URL;
             } catch (error) {
                 // Re-enable buttons on error

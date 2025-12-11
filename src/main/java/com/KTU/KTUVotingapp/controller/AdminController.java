@@ -70,5 +70,96 @@ public class AdminController {
         List<ResultDTO> results = resultService.getAllResults();
         return ResponseEntity.ok(results);
     }
-}
 
+    @PostMapping("/candidates")
+    public org.springframework.http.ResponseEntity<?> createCandidate(@RequestParam("adminPin") String pin,
+                                                                       @RequestBody com.KTU.KTUVotingapp.dto.CandidateDTO dto) {
+        if (pin == null || !pin.equals("99999")) {
+            return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
+        }
+
+        org.springframework.web.context.WebApplicationContext ctx = org.springframework.web.context.support.WebApplicationContextUtils
+                .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext());
+        com.KTU.KTUVotingapp.repository.CandidateRepository repo = ctx.getBean(com.KTU.KTUVotingapp.repository.CandidateRepository.class);
+
+        com.KTU.KTUVotingapp.model.Candidate candidate = new com.KTU.KTUVotingapp.model.Candidate();
+        candidate.setCategory(dto.getCategory());
+        candidate.setCandidateNumber(dto.getCandidateNumber());
+        candidate.setName(dto.getName());
+        candidate.setDepartment(dto.getDepartment());
+        candidate.setImageUrl(dto.getImageUrl());
+        candidate.setVoteCount(dto.getVoteCount() != null ? dto.getVoteCount() : 0L);
+
+        com.KTU.KTUVotingapp.model.Candidate saved = repo.save(candidate);
+
+        com.KTU.KTUVotingapp.dto.CandidateDTO response = new com.KTU.KTUVotingapp.dto.CandidateDTO(
+                saved.getId(), saved.getCategory(), saved.getCandidateNumber(), saved.getName(), saved.getDepartment(), saved.getImageUrl(), saved.getVoteCount()
+        );
+
+        return org.springframework.http.ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/candidates/{id}")
+    public org.springframework.http.ResponseEntity<?> getCandidate(@RequestParam("adminPin") String pin, @PathVariable Long id) {
+        if (pin == null || !pin.equals("99999")) {
+            return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
+        }
+
+        org.springframework.web.context.WebApplicationContext ctx = org.springframework.web.context.support.WebApplicationContextUtils
+                .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext());
+        com.KTU.KTUVotingapp.repository.CandidateRepository repo = ctx.getBean(com.KTU.KTUVotingapp.repository.CandidateRepository.class);
+
+        java.util.Optional<com.KTU.KTUVotingapp.model.Candidate> found = repo.findById(id);
+        if (found.isEmpty()) return org.springframework.http.ResponseEntity.notFound().build();
+
+        com.KTU.KTUVotingapp.model.Candidate c = found.get();
+        com.KTU.KTUVotingapp.dto.CandidateDTO response = new com.KTU.KTUVotingapp.dto.CandidateDTO(
+                c.getId(), c.getCategory(), c.getCandidateNumber(), c.getName(), c.getDepartment(), c.getImageUrl(), c.getVoteCount()
+        );
+        return org.springframework.http.ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/candidates/{id}")
+    public org.springframework.http.ResponseEntity<?> updateCandidate(@RequestParam("adminPin") String pin, @PathVariable Long id,
+                                                                       @RequestBody com.KTU.KTUVotingapp.dto.CandidateDTO dto) {
+        if (pin == null || !pin.equals("99999")) {
+            return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
+        }
+
+        org.springframework.web.context.WebApplicationContext ctx = org.springframework.web.context.support.WebApplicationContextUtils
+                .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext());
+        com.KTU.KTUVotingapp.repository.CandidateRepository repo = ctx.getBean(com.KTU.KTUVotingapp.repository.CandidateRepository.class);
+
+        com.KTU.KTUVotingapp.model.Candidate existing = repo.findById(id).orElse(null);
+        if (existing == null) return org.springframework.http.ResponseEntity.notFound().build();
+
+        if (dto.getCategory() != null) existing.setCategory(dto.getCategory());
+        if (dto.getCandidateNumber() != null) existing.setCandidateNumber(dto.getCandidateNumber());
+        if (dto.getName() != null) existing.setName(dto.getName());
+        if (dto.getDepartment() != null) existing.setDepartment(dto.getDepartment());
+        if (dto.getImageUrl() != null) existing.setImageUrl(dto.getImageUrl());
+        if (dto.getVoteCount() != null) existing.setVoteCount(dto.getVoteCount());
+
+        com.KTU.KTUVotingapp.model.Candidate saved = repo.save(existing);
+
+        com.KTU.KTUVotingapp.dto.CandidateDTO response = new com.KTU.KTUVotingapp.dto.CandidateDTO(
+                saved.getId(), saved.getCategory(), saved.getCandidateNumber(), saved.getName(), saved.getDepartment(), saved.getImageUrl(), saved.getVoteCount()
+        );
+        return org.springframework.http.ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/candidates/{id}")
+    public org.springframework.http.ResponseEntity<?> deleteCandidate(@RequestParam("adminPin") String pin, @PathVariable Long id) {
+        if (pin == null || !pin.equals("99999")) {
+            return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
+        }
+
+        org.springframework.web.context.WebApplicationContext ctx = org.springframework.web.context.support.WebApplicationContextUtils
+                .getWebApplicationContext(((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext());
+        com.KTU.KTUVotingapp.repository.CandidateRepository repo = ctx.getBean(com.KTU.KTUVotingapp.repository.CandidateRepository.class);
+
+        if (!repo.existsById(id)) return org.springframework.http.ResponseEntity.notFound().build();
+        repo.deleteById(id);
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
+}

@@ -38,22 +38,69 @@
 
     <script th:inline="javascript">
         // Display vote information
-        const selectedKing = JSON.parse(localStorage.getItem('selectedKing') || '{}');
-        const selectedQueen = JSON.parse(localStorage.getItem('selectedQueen') || '{}');
-        const selectedPrince = JSON.parse(localStorage.getItem('selectedPrince') || '{}');
-        const selectedPrincess = JSON.parse(localStorage.getItem('selectedPrincess') || '{}');
-        const selectedCouple = JSON.parse(localStorage.getItem('selectedCouple') || '{}');
+        const selectedKing = JSON.parse(localStorage.getItem('selectedKing') || 'null');
+        const selectedQueen = JSON.parse(localStorage.getItem('selectedQueen') || 'null');
+        const selectedPrince = JSON.parse(localStorage.getItem('selectedPrince') || 'null');
+        const selectedPrincess = JSON.parse(localStorage.getItem('selectedPrincess') || 'null');
+        const selectedCouple = JSON.parse(localStorage.getItem('selectedCouple') || 'null');
 
-        document.getElementById('voted-king').textContent = `King: ${selectedKing.name || 'Not selected'}`;
-        document.getElementById('voted-queen').textContent = `Queen: ${selectedQueen.name || 'Not selected'}`;
-        document.getElementById('voted-prince').textContent = `Prince: ${selectedPrince.name || 'Not selected'}`;
-        document.getElementById('voted-princess').textContent = `Princess: ${selectedPrincess.name || 'Not selected'}`;
-        document.getElementById('voted-couple').textContent = `Best Couple: ${selectedCouple.name || 'Not selected'}`;
+        // Also read the fallback candidate numbers if the full object isn't stored
+        const kingSelection = localStorage.getItem('kingSelection');
+        const queenSelection = localStorage.getItem('queenSelection');
+        const princeSelection = localStorage.getItem('princeSelection');
+        const princessSelection = localStorage.getItem('princessSelection');
+        const coupleSelection = localStorage.getItem('coupleSelection');
+
+        document.getElementById('voted-king').textContent = `King: ${ (selectedKing && selectedKing.name) ? selectedKing.name : (kingSelection ? ('#' + kingSelection) : 'Not selected') }`;
+        document.getElementById('voted-queen').textContent = `Queen: ${ (selectedQueen && selectedQueen.name) ? selectedQueen.name : (queenSelection ? ('#' + queenSelection) : 'Not selected') }`;
+        document.getElementById('voted-prince').textContent = `Prince: ${ (selectedPrince && selectedPrince.name) ? selectedPrince.name : (princeSelection ? ('#' + princeSelection) : 'Not selected') }`;
+        document.getElementById('voted-princess').textContent = `Princess: ${ (selectedPrincess && selectedPrincess.name) ? selectedPrincess.name : (princessSelection ? ('#' + princessSelection) : 'Not selected') }`;
+        document.getElementById('voted-couple').textContent = `Best Couple: ${ (selectedCouple && selectedCouple.name) ? selectedCouple.name : (coupleSelection ? ('#' + coupleSelection) : 'Not selected') }`;
+
+        // If names are not available in localStorage, try fetching from the server by candidate number
+        (async function fetchMissingNames() {
+            try {
+                const toFetch = [];
+                if (!(selectedKing && selectedKing.name) && kingSelection) toFetch.push({cat: 'king', num: kingSelection, elId: 'voted-king', prefix: 'King: '});
+                if (!(selectedQueen && selectedQueen.name) && queenSelection) toFetch.push({cat: 'queen', num: queenSelection, elId: 'voted-queen', prefix: 'Queen: '});
+                if (!(selectedPrince && selectedPrince.name) && princeSelection) toFetch.push({cat: 'prince', num: princeSelection, elId: 'voted-prince', prefix: 'Prince: '});
+                if (!(selectedPrincess && selectedPrincess.name) && princessSelection) toFetch.push({cat: 'princess', num: princessSelection, elId: 'voted-princess', prefix: 'Princess: '});
+                if (!(selectedCouple && selectedCouple.name) && coupleSelection) toFetch.push({cat: 'couple', num: coupleSelection, elId: 'voted-couple', prefix: 'Best Couple: '});
+
+                for (const item of toFetch) {
+                    try {
+                        const r = await fetch(`/api/candidates/${item.cat}`);
+                        if (!r.ok) continue;
+                        const list = await r.json();
+                        const found = (Array.isArray(list) ? list : []).find(c => String(c.candidateNumber) === String(item.num) || String(c.id) === String(item.num));
+                        if (found && found.name) {
+                            const el = document.getElementById(item.elId);
+                            if (el) el.textContent = item.prefix + found.name;
+                        }
+                    } catch (e) {
+                        // ignore fetch errors for individual categories
+                        console.warn('Could not fetch candidates for', item.cat, e);
+                    }
+                }
+            } catch (e) {
+                console.warn('fetchMissingNames error', e);
+            }
+        })();
 
         const LANDING_URL = /*[[@{/}]]*/ '/';
 
         function resetVoting() {
-            localStorage.clear();
+            // Optionally clear selections here when explicitly returning home
+            localStorage.removeItem('kingSelection');
+            localStorage.removeItem('selectedKing');
+            localStorage.removeItem('queenSelection');
+            localStorage.removeItem('selectedQueen');
+            localStorage.removeItem('princeSelection');
+            localStorage.removeItem('selectedPrince');
+            localStorage.removeItem('princessSelection');
+            localStorage.removeItem('selectedPrincess');
+            localStorage.removeItem('coupleSelection');
+            localStorage.removeItem('selectedCouple');
             window.location.href = LANDING_URL;
         }
     </script>

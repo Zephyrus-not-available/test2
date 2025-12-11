@@ -44,5 +44,25 @@ public class ResultController {
         List<ResultDTO> results = resultService.getAllResults();
         return ResponseEntity.ok(results);
     }
-}
 
+    /**
+     * Get live admin results - secured endpoint.
+     * GET /api/admin/results?pin={pin}
+     */
+    @GetMapping("/api/admin/results")
+    public ResponseEntity<java.util.List<ResultDTO.CandidateResultDTO>> getLiveAdminResults(@RequestParam("pin") String pin) {
+        // Simple hardcoded PIN check as requested
+        if (pin == null || !pin.equals("99999")) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
+        }
+
+        // Aggregate all candidates from all categories and sort by voteCount desc
+        java.util.List<ResultDTO> all = resultService.getAllResults();
+        java.util.List<ResultDTO.CandidateResultDTO> candidates = all.stream()
+                .flatMap(r -> r.getCandidates().stream())
+                .sorted(java.util.Comparator.comparingLong(ResultDTO.CandidateResultDTO::getVoteCount).reversed())
+                .collect(java.util.stream.Collectors.toList());
+
+        return ResponseEntity.ok(candidates);
+    }
+}

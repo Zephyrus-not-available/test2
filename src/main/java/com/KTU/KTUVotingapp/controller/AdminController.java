@@ -71,6 +71,25 @@ public class AdminController {
         return ResponseEntity.ok(results);
     }
 
+    /**
+     * Live admin flattened candidate results for dashboard polling.
+     * GET /api/admin/results?pin=99999
+     */
+    @GetMapping(value = "/results", params = "pin")
+    public ResponseEntity<java.util.List<ResultDTO.CandidateResultDTO>> getLiveAdminResults(@RequestParam("pin") String pin) {
+        if (pin == null || !pin.equals("99999")) {
+            return ResponseEntity.status(403).build();
+        }
+
+        java.util.List<ResultDTO> all = resultService.getAllResults();
+        java.util.List<ResultDTO.CandidateResultDTO> candidates = all.stream()
+                .flatMap(r -> r.getCandidates().stream())
+                .sorted(java.util.Comparator.comparingLong(ResultDTO.CandidateResultDTO::getVoteCount).reversed())
+                .collect(java.util.stream.Collectors.toList());
+
+        return ResponseEntity.ok(candidates);
+    }
+
     @PostMapping("/candidates")
     public org.springframework.http.ResponseEntity<?> createCandidate(@RequestParam("adminPin") String pin,
                                                                        @RequestBody com.KTU.KTUVotingapp.dto.CandidateDTO dto) {

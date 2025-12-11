@@ -25,6 +25,10 @@
     let pollHandle = null;
     let unlockedPin = null;
 
+    // On admin dashboard load, remove any leftover voter PIN to avoid accidental navigation to selection pages
+    try { localStorage.removeItem('votingPin'); } catch (e) { /* ignore */ }
+    console.log('admin-dashboard initialized');
+
     // Helpers
     function showPinError(msg) {
         pinMessage.style.display = 'block';
@@ -37,6 +41,8 @@
 
     function enableDashboard(pin) {
         unlockedPin = pin;
+        // Persist admin PIN only in sessionStorage (do not touch votingPin to avoid voter flow redirects)
+        try { sessionStorage.setItem('adminPin', pin); } catch (e) { /* ignore */ }
         pinSection.style.display = 'none';
         dashboard.style.display = '';
         startPolling();
@@ -93,6 +99,8 @@
     // Lock dashboard
     function lockDashboard() {
         unlockedPin = null;
+        // Remove persisted admin PIN
+        try { sessionStorage.removeItem('adminPin'); } catch (e) { /* ignore */ }
         dashboard.style.display = 'none';
         pinSection.style.display = '';
         if (pollHandle) {
@@ -124,6 +132,15 @@
         // Valid client-side PIN: reveal and start polling, per requirements pass client PIN to server
         enableDashboard(val);
     });
+
+    // Also handle the unlock button click (form prevented from default submission in template)
+    const pinSubmitBtn = document.getElementById('pinSubmit');
+    if (pinSubmitBtn) {
+        pinSubmitBtn.addEventListener('click', function () {
+            const val = (pinInput.value || '').trim();
+            pinForm.dispatchEvent(new Event('submit', { cancelable: true }));
+        });
+    }
 
     manualRefreshBtn.addEventListener('click', function () {
         fetchAndRenderResults();
@@ -316,4 +333,3 @@
     })();
 
 })();
-

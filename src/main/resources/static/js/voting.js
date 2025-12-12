@@ -41,8 +41,12 @@
 
   const saveSelection = (category, candidate) => {
     if (!category || !candidate) return;
-    localStorage.setItem(selectionValueKey(category), String(candidate.candidateNumber));
-    localStorage.setItem(selectedObjectKey(category), JSON.stringify(candidate));
+    // Defensive: ensure candidate has the minimal shape we need
+    const safe = Object.assign({}, candidate || {});
+    if (typeof safe.candidateNumber === 'undefined' && safe.id) safe.candidateNumber = safe.id;
+    if (typeof safe.name === 'undefined') safe.name = '';
+    localStorage.setItem(selectionValueKey(category), String(safe.candidateNumber));
+    localStorage.setItem(selectedObjectKey(category), JSON.stringify(safe));
   };
   const loadSelection = (category) => {
     const obj = localStorage.getItem(selectedObjectKey(category));
@@ -72,7 +76,8 @@
   };
 
   const fetchCandidates = async (category) => {
-    const res = await fetch(`${API_BASE}/candidates/${category.toLowerCase()}`);
+    // Ensure the path matches controller enum handling; use uppercase category to be explicit
+    const res = await fetch(`${API_BASE}/candidates/${String(category).toUpperCase()}`);
     if (!res.ok) throw new Error(await res.text() || 'Failed to load candidates');
     return res.json();
   };

@@ -45,14 +45,19 @@
 
         <div class="flex justify-center gap-3 md:gap-4 mb-6 md:mb-8">
 
+            <label for="pin1" class="sr-only">PIN Digit 1</label>
             <input type="password" maxlength="1" class="pin-input" id="pin1" oninput="moveFocus(this, 'pin2')" onkeydown="handleBackspace(event, this, null)">
 
+            <label for="pin2" class="sr-only">PIN Digit 2</label>
             <input type="password" maxlength="1" class="pin-input" id="pin2" oninput="moveFocus(this, 'pin3')" onkeydown="handleBackspace(event, this, 'pin1')">
 
+            <label for="pin3" class="sr-only">PIN Digit 3</label>
             <input type="password" maxlength="1" class="pin-input" id="pin3" oninput="moveFocus(this, 'pin4')" onkeydown="handleBackspace(event, this, 'pin2')">
 
+            <label for="pin4" class="sr-only">PIN Digit 4</label>
             <input type="password" maxlength="1" class="pin-input" id="pin4" oninput="moveFocus(this, 'pin5')" onkeydown="handleBackspace(event, this, 'pin3')">
 
+            <label for="pin5" class="sr-only">PIN Digit 5</label>
             <input type="password" maxlength="1" class="pin-input" id="pin5" onkeydown="handleBackspace(event, this, 'pin4')">
 
         </div>
@@ -142,6 +147,8 @@
 
 <script th:inline="javascript">
 
+    const ADMIN_PIN = '99999';
+    const ADMIN_DASHBOARD_URL = /*[[@{/admin-dashboard}]]*/ '/admin-dashboard';
     const KING_SELECTION_URL = /*[[@{/king-selection}]]*/ '/king-selection';
 
 
@@ -207,8 +214,6 @@
         }
 
     }
-
-
 
 
 
@@ -303,6 +308,7 @@
         try {
 
             const result = await VotingApp.verifyPin(pin);
+            console.log('verifyPin result:', result);
 
             if (!result.valid) {
 
@@ -311,7 +317,6 @@
                 return;
 
             }
-
             if (result.alreadyVoted) {
 
                 showError('This PIN has already been used to vote. Please contact an admin if you believe this is an error.', 'Already voted');
@@ -319,20 +324,34 @@
                 return;
 
             }
-
             VotingApp.savePin(pin);
-
             VotingApp.getDeviceId();
+            // Backend returns { valid, alreadyVoted, role }
+            // Accept both legacy boolean flag `isAdmin` or the `role` string for compatibility
+            const isAdmin = (typeof result.isAdmin !== 'undefined') ? result.isAdmin : (result.role === 'admin');
 
-            window.location.href = KING_SELECTION_URL;
+            if (isAdmin) {
+
+                // use assign for clearer navigation and log
+                console.log('Admin PIN detected - redirecting to admin dashboard');
+                window.location.assign('/admin-dashboard');
+
+            } else {
+
+                console.log('User PIN detected - redirecting to king selection');
+                window.location.assign(KING_SELECTION_URL);
+
+            }
 
         } catch (err) {
 
+            console.error('Error during verifyPin:', err);
             showError(err.message || 'Something went wrong while verifying your PIN.');
 
         }
 
     }
+
 
 
 
@@ -359,3 +378,4 @@
 </body>
 
 </html>
+

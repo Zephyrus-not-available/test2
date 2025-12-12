@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <script th:inline="javascript">
+    <script>
         // Display vote information
         const selectedKing = JSON.parse(localStorage.getItem('selectedKing') || 'null');
         const selectedQueen = JSON.parse(localStorage.getItem('selectedQueen') || 'null');
@@ -58,7 +58,7 @@
         document.getElementById('voted-couple').textContent = `Best Couple: ${ (selectedCouple && selectedCouple.name) ? selectedCouple.name : (coupleSelection ? ('#' + coupleSelection) : 'Not selected') }`;
 
         // If names are not available in localStorage, try fetching from the server by candidate number
-        (async function fetchMissingNames() {
+        async function fetchMissingNames() {
             try {
                 const toFetch = [];
                 if (!(selectedKing && selectedKing.name) && kingSelection) toFetch.push({cat: 'king', num: kingSelection, elId: 'voted-king', prefix: 'King: '});
@@ -69,7 +69,9 @@
 
                 for (const item of toFetch) {
                     try {
-                        const r = await fetch(`/api/candidates/${item.cat}`);
+                        // Ensure category path matches server expectations
+                        const categoryPath = String(item.cat).toUpperCase();
+                        const r = await fetch(`/api/candidates/${categoryPath}`);
                         if (!r.ok) continue;
                         const list = await r.json();
                         const found = (Array.isArray(list) ? list : []).find(c => String(c.candidateNumber) === String(item.num) || String(c.id) === String(item.num));
@@ -85,9 +87,12 @@
             } catch (e) {
                 console.warn('fetchMissingNames error', e);
             }
-        })();
+        }
 
-        const LANDING_URL = /*[[@{/}]]*/ '/';
+        // invoke
+        fetchMissingNames().catch(e => console.warn('fetchMissingNames error', e));
+
+        const LANDING_URL = '/';
 
         function resetVoting() {
             // Optionally clear selections here when explicitly returning home

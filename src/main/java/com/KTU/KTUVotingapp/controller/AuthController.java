@@ -1,4 +1,3 @@
-
 package com.KTU.KTUVotingapp.controller;
 
 import java.util.Map;
@@ -18,23 +17,20 @@ public class AuthController {
     private String adminPin;
 
     @PostMapping("/verify-pin")
-    public ResponseEntity<?> verifyPin(@RequestBody PinRequest request) {
-        if (request == null || request.getPin() == null) {
+    public ResponseEntity<?> verifyPin(@RequestBody Map<String, Object> body) {
+        if (body == null || !body.containsKey("pin") || body.get("pin") == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Missing pin"));
         }
 
-        String pin = request.getPin().trim();
-        if (pin.equals(userPin) || pin.equals(adminPin)) {
-            return ResponseEntity.ok(Map.of("valid", true, "alreadyVoted", false));
+        String pin = String.valueOf(body.get("pin")).trim();
+        if (pin.equals(userPin)) {
+            return ResponseEntity.ok(Map.of("valid", true, "alreadyVoted", false, "role", "user"));
+        }
+        if (pin.equals(adminPin)) {
+            return ResponseEntity.ok(Map.of("valid", true, "alreadyVoted", false, "role", "admin"));
         }
 
         // Front-end expects 404 to mean "PIN does not exist"
         return ResponseEntity.status(404).body("Pin not found");
-    }
-
-    public static class PinRequest {
-        private String pin;
-        public String getPin() { return pin; }
-        public void setPin(String pin) { this.pin = pin; }
     }
 }

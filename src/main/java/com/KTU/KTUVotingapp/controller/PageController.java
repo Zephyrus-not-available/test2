@@ -50,6 +50,9 @@ public class PageController {
     public String success() {
         return "success";
     }
+
+    @GetMapping("/admin-dashboard")
+    public String adminDashboard() {
+        return "admin-dashboard";
+    }
 }
-
-

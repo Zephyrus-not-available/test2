@@ -79,27 +79,27 @@ VALUES
     ('QUEEN', 8, 'Candidate Queen 8', 'Electrical Engineering', '/images/queen8.jpg', 0),
     ('QUEEN', 9, 'Candidate Queen 9', 'Mining Engineering', '/images/queen9.jpg', 0),
 
-    -- PRINCE (Now uses KING details)
-    ('PRINCE', 1, 'Candidate King 1', 'Computer Science', '/images/king1.jpg', 0),
-    ('PRINCE', 2, 'Candidate King 2', 'Electronics', '/images/king2.jpg', 0),
-    ('PRINCE', 3, 'Candidate King 3', 'Mechanical', '/images/king3.jpg', 0),
-    ('PRINCE', 4, 'Candidate King 4', 'Civil Engineering', '/images/king4.jpg', 0),
-    ('PRINCE', 5, 'Candidate King 5', 'Architecture', '/images/king5.jpg', 0),
-    ('PRINCE', 6, 'Candidate King 6', 'Chemical Engineering', '/images/king6.jpg', 0),
-    ('PRINCE', 7, 'Candidate King 7', 'Information Technology', '/images/king7.jpg', 0),
-    ('PRINCE', 8, 'Candidate King 8', 'Electrical Engineering', '/images/king8.jpg', 0),
-    ('PRINCE', 9, 'Candidate King 9', 'Mining Engineering', '/images/king9.jpg', 0),
+    -- PRINCE
+    ('PRINCE', 1, 'Candidate Prince 1', 'Computer Science', '/images/prince1.jpg', 0),
+    ('PRINCE', 2, 'Candidate Prince 2', 'Electronics', '/images/prince2.jpg', 0),
+    ('PRINCE', 3, 'Candidate Prince 3', 'Mechanical', '/images/prince3.jpg', 0),
+    ('PRINCE', 4, 'Candidate Prince 4', 'Civil Engineering', '/images/prince4.jpg', 0),
+    ('PRINCE', 5, 'Candidate Prince 5', 'Architecture', '/images/prince5.jpg', 0),
+    ('PRINCE', 6, 'Candidate Prince 6', 'Chemical Engineering', '/images/prince6.jpg', 0),
+    ('PRINCE', 7, 'Candidate Prince 7', 'Information Technology', '/images/prince7.jpg', 0),
+    ('PRINCE', 8, 'Candidate Prince 8', 'Electrical Engineering', '/images/prince8.jpg', 0),
+    ('PRINCE', 9, 'Candidate Prince 9', 'Mining Engineering', '/images/prince9.jpg', 0),
 
-    -- PRINCESS (Now uses QUEEN details)
-    ('PRINCESS', 1, 'Candidate Queen 1', 'Computer Science', '/images/queen1.jpg', 0),
-    ('PRINCESS', 2, 'Candidate Queen 2', 'Electronics', '/images/queen2.jpg', 0),
-    ('PRINCESS', 3, 'Candidate Queen 3', 'Mechanical', '/images/queen3.jpg', 0),
-    ('PRINCESS', 4, 'Candidate Queen 4', 'Civil Engineering', '/images/queen4.jpg', 0),
-    ('PRINCESS', 5, 'Candidate Queen 5', 'Architecture', '/images/queen5.jpg', 0),
-    ('PRINCESS', 6, 'Candidate Queen 6', 'Chemical Engineering', '/images/queen6.jpg', 0),
-    ('PRINCESS', 7, 'Candidate Queen 7', 'Information Technology', '/images/queen7.jpg', 0),
-    ('PRINCESS', 8, 'Candidate Queen 8', 'Electrical Engineering', '/images/queen8.jpg', 0),
-    ('PRINCESS', 9, 'Candidate Queen 9', 'Mining Engineering', '/images/queen9.jpg', 0),
+    -- PRINCESS
+    ('PRINCESS', 1, 'Candidate Princess 1', 'Computer Science', '/images/princess1.jpg', 0),
+    ('PRINCESS', 2, 'Candidate Princess 2', 'Electronics', '/images/princess2.jpg', 0),
+    ('PRINCESS', 3, 'Candidate Princess 3', 'Mechanical', '/images/princess3.jpg', 0),
+    ('PRINCESS', 4, 'Candidate Princess 4', 'Civil Engineering', '/images/princess4.jpg', 0),
+    ('PRINCESS', 5, 'Candidate Princess 5', 'Architecture', '/images/princess5.jpg', 0),
+    ('PRINCESS', 6, 'Candidate Princess 6', 'Chemical Engineering', '/images/princess6.jpg', 0),
+    ('PRINCESS', 7, 'Candidate Princess 7', 'Information Technology', '/images/princess7.jpg', 0),
+    ('PRINCESS', 8, 'Candidate Princess 8', 'Electrical Engineering', '/images/princess8.jpg', 0),
+    ('PRINCESS', 9, 'Candidate Princess 9', 'Mining Engineering', '/images/princess9.jpg', 0),
 
     -- COUPLE
     ('COUPLE', 1, 'Couple 1', 'Computer Science', '/images/couple1.jpg', 0),

@@ -18,7 +18,6 @@ public class AdminController {
 
     private final ResultService resultService;
 
-    @Value("${admin.pin:99999}")
     private String adminPin;
 
     public AdminController(ResultService resultService) {
@@ -77,7 +76,7 @@ public class AdminController {
      */
     @GetMapping(value = "/results", params = "pin")
     public ResponseEntity<java.util.List<ResultDTO.CandidateResultDTO>> getLiveAdminResults(@RequestParam("pin") String pin) {
-        if (pin == null || !pin.equals("99999")) {
+        if (pin == null || !pin.equals(adminPin)) {
             return ResponseEntity.status(403).build();
         }
 
@@ -93,7 +92,7 @@ public class AdminController {
     @PostMapping("/candidates")
     public org.springframework.http.ResponseEntity<?> createCandidate(@RequestParam("adminPin") String pin,
                                                                        @RequestBody com.KTU.KTUVotingapp.dto.CandidateDTO dto) {
-        if (pin == null || !pin.equals("99999")) {
+        if (pin == null || !pin.equals(adminPin)) {
             return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
         }
 
@@ -120,7 +119,7 @@ public class AdminController {
 
     @GetMapping("/candidates/{id}")
     public org.springframework.http.ResponseEntity<?> getCandidate(@RequestParam("adminPin") String pin, @PathVariable Long id) {
-        if (pin == null || !pin.equals("99999")) {
+        if (pin == null || !pin.equals(adminPin)) {
             return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
         }
 
@@ -141,7 +140,7 @@ public class AdminController {
     @PutMapping("/candidates/{id}")
     public org.springframework.http.ResponseEntity<?> updateCandidate(@RequestParam("adminPin") String pin, @PathVariable Long id,
                                                                        @RequestBody com.KTU.KTUVotingapp.dto.CandidateDTO dto) {
-        if (pin == null || !pin.equals("99999")) {
+        if (pin == null || !pin.equals(adminPin)) {
             return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
         }
 
@@ -169,7 +168,7 @@ public class AdminController {
 
     @DeleteMapping("/candidates/{id}")
     public org.springframework.http.ResponseEntity<?> deleteCandidate(@RequestParam("adminPin") String pin, @PathVariable Long id) {
-        if (pin == null || !pin.equals("99999")) {
+        if (pin == null || !pin.equals(adminPin) ){
             return org.springframework.http.ResponseEntity.status(403).body("Forbidden");
         }
 

@@ -312,7 +312,7 @@
       });
     }
 
-    // Restore saved selection
+    // Restore saved selection or show first candidate
     if (selectedNumber) {
       const saved = candidates.find(c => c.candidateNumber === selectedNumber);
       if (saved) {
@@ -322,6 +322,11 @@
         if (input) input.checked = true;
         updateCandidateDisplay(saved);
       } else selectedNumber = null;
+    }
+
+    // Show first candidate's data on initial load if no selection saved
+    if (!selectedNumber && candidates.length > 0) {
+      updateCandidateDisplay(candidates[0]);
     }
 
     updateNextButton();

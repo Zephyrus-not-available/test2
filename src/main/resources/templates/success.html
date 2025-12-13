@@ -6,30 +6,129 @@
     <title>Success - King & Queen Voting</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" th:href="@{/styles.css}">
+    <style>
+        .success-checkmark {
+            animation: checkmark-pop 0.5s ease-out 0.3s both;
+        }
+        @keyframes checkmark-pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            opacity: 0;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                opacity: 1;
+                transform: translateY(-20px) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+
+        .vote-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .vote-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen">
+    <!-- Confetti Container -->
+    <div class="confetti-container" id="confetti-container"></div>
+
     <!-- Success Screen -->
     <div class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-full card-shadow slide-in">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full card-shadow slide-in">
             <div class="text-center">
-                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 success-checkmark">
+                    <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                     </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-4">Voting Successful!</h3>
-                <p class="text-gray-600 mb-6">Your votes have been submitted successfully. Thank you for participating!</p>
-                
-                <div class="bg-gray-50 rounded-xl p-4 mb-6 text-left">
-                    <p class="text-sm text-gray-600 mb-2">Your votes:</p>
-                    <p class="font-semibold text-gray-800" id="voted-king">King: -</p>
-                    <p class="font-semibold text-gray-800" id="voted-queen">Queen: -</p>
-                    <p class="font-semibold text-gray-800" id="voted-prince">Prince: -</p>
-                    <p class="font-semibold text-gray-800" id="voted-princess">Princess: -</p>
-                    <p class="font-semibold text-gray-800" id="voted-couple">Best Couple: -</p>
+                <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">🎉 Voting Complete!</h3>
+                <p class="text-gray-600 mb-6">Thank you for participating in the King & Queen 2026 voting.</p>
+
+                <div class="bg-gray-50 rounded-2xl p-4 mb-6 text-left">
+                    <p class="text-sm text-gray-500 mb-3 text-center font-medium">Your Selections</p>
+
+                    <div class="vote-item">
+                        <div class="vote-icon bg-blue-100">👑</div>
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-500">King</p>
+                            <p class="font-semibold text-gray-800" id="voted-king">-</p>
+                        </div>
+                    </div>
+
+                    <div class="vote-item">
+                        <div class="vote-icon bg-pink-100">👸</div>
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-500">Queen</p>
+                            <p class="font-semibold text-gray-800" id="voted-queen">-</p>
+                        </div>
+                    </div>
+
+                    <div class="vote-item">
+                        <div class="vote-icon bg-cyan-100">🤴</div>
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-500">Prince</p>
+                            <p class="font-semibold text-gray-800" id="voted-prince">-</p>
+                        </div>
+                    </div>
+
+                    <div class="vote-item">
+                        <div class="vote-icon bg-purple-100">👸</div>
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-500">Princess</p>
+                            <p class="font-semibold text-gray-800" id="voted-princess">-</p>
+                        </div>
+                    </div>
+
+                    <div class="vote-item">
+                        <div class="vote-icon bg-green-100">💑</div>
+                        <div class="flex-1">
+                            <p class="text-xs text-gray-500">Best Couple</p>
+                            <p class="font-semibold text-gray-800" id="voted-couple">-</p>
+                        </div>
+                    </div>
                 </div>
                 
-                <button onclick="resetVoting()" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition">
+                <button onclick="resetVoting()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-semibold hover:opacity-90 transition text-lg shadow-lg">
                     Return to Home
                 </button>
             </div>
@@ -37,65 +136,77 @@
     </div>
 
     <script>
-        // Display vote information
-        const selectedKing = JSON.parse(localStorage.getItem('selectedKing') || 'null');
-        const selectedQueen = JSON.parse(localStorage.getItem('selectedQueen') || 'null');
-        const selectedPrince = JSON.parse(localStorage.getItem('selectedPrince') || 'null');
-        const selectedPrincess = JSON.parse(localStorage.getItem('selectedPrincess') || 'null');
-        const selectedCouple = JSON.parse(localStorage.getItem('selectedCouple') || 'null');
+        // Confetti celebration
+        function createConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#f43f5e', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
 
-        // Also read the fallback candidate numbers if the full object isn't stored
-        const kingSelection = localStorage.getItem('kingSelection');
-        const queenSelection = localStorage.getItem('queenSelection');
-        const princeSelection = localStorage.getItem('princeSelection');
-        const princessSelection = localStorage.getItem('princessSelection');
-        const coupleSelection = localStorage.getItem('coupleSelection');
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
 
-        document.getElementById('voted-king').textContent = `King: ${ (selectedKing && selectedKing.name) ? selectedKing.name : (kingSelection ? ('#' + kingSelection) : 'Not selected') }`;
-        document.getElementById('voted-queen').textContent = `Queen: ${ (selectedQueen && selectedQueen.name) ? selectedQueen.name : (queenSelection ? ('#' + queenSelection) : 'Not selected') }`;
-        document.getElementById('voted-prince').textContent = `Prince: ${ (selectedPrince && selectedPrince.name) ? selectedPrince.name : (princeSelection ? ('#' + princeSelection) : 'Not selected') }`;
-        document.getElementById('voted-princess').textContent = `Princess: ${ (selectedPrincess && selectedPrincess.name) ? selectedPrincess.name : (princessSelection ? ('#' + princessSelection) : 'Not selected') }`;
-        document.getElementById('voted-couple').textContent = `Best Couple: ${ (selectedCouple && selectedCouple.name) ? selectedCouple.name : (coupleSelection ? ('#' + coupleSelection) : 'Not selected') }`;
-
-        // If names are not available in localStorage, try fetching from the server by candidate number
-        async function fetchMissingNames() {
-            try {
-                const toFetch = [];
-                if (!(selectedKing && selectedKing.name) && kingSelection) toFetch.push({cat: 'king', num: kingSelection, elId: 'voted-king', prefix: 'King: '});
-                if (!(selectedQueen && selectedQueen.name) && queenSelection) toFetch.push({cat: 'queen', num: queenSelection, elId: 'voted-queen', prefix: 'Queen: '});
-                if (!(selectedPrince && selectedPrince.name) && princeSelection) toFetch.push({cat: 'prince', num: princeSelection, elId: 'voted-prince', prefix: 'Prince: '});
-                if (!(selectedPrincess && selectedPrincess.name) && princessSelection) toFetch.push({cat: 'princess', num: princessSelection, elId: 'voted-princess', prefix: 'Princess: '});
-                if (!(selectedCouple && selectedCouple.name) && coupleSelection) toFetch.push({cat: 'couple', num: coupleSelection, elId: 'voted-couple', prefix: 'Best Couple: '});
-
-                for (const item of toFetch) {
-                    try {
-                        // Ensure category path matches server expectations
-                        const categoryPath = String(item.cat).toUpperCase();
-                        const r = await fetch(`/api/candidates/${categoryPath}`);
-                        if (!r.ok) continue;
-                        const list = await r.json();
-                        const found = (Array.isArray(list) ? list : []).find(c => String(c.candidateNumber) === String(item.num) || String(c.id) === String(item.num));
-                        if (found && found.name) {
-                            const el = document.getElementById(item.elId);
-                            if (el) el.textContent = item.prefix + found.name;
-                        }
-                    } catch (e) {
-                        // ignore fetch errors for individual categories
-                        console.warn('Could not fetch candidates for', item.cat, e);
+                    // Random shapes
+                    if (Math.random() > 0.5) {
+                        confetti.style.borderRadius = '50%';
                     }
-                }
-            } catch (e) {
-                console.warn('fetchMissingNames error', e);
+
+                    container.appendChild(confetti);
+
+                    // Remove after animation
+                    setTimeout(() => confetti.remove(), 4000);
+                }, i * 50);
             }
         }
 
-        // invoke
-        fetchMissingNames().catch(e => console.warn('fetchMissingNames error', e));
+        // Trigger confetti on load
+        createConfetti();
 
-        const LANDING_URL = '/';
+        // Display vote information from localStorage
+        function displayVotes() {
+            const categories = [
+                { key: 'KING', elId: 'voted-king' },
+                { key: 'QUEEN', elId: 'voted-queen' },
+                { key: 'PRINCE', elId: 'voted-prince' },
+                { key: 'PRINCESS', elId: 'voted-princess' },
+                { key: 'COUPLE', elId: 'voted-couple' }
+            ];
+
+            categories.forEach(({ key, elId }) => {
+                const objKey = `sel:${key}:obj`;
+                const stored = localStorage.getItem(objKey);
+                const el = document.getElementById(elId);
+
+                if (stored && el) {
+                    try {
+                        const obj = JSON.parse(stored);
+                        if (obj.name) {
+                            el.textContent = obj.name;
+                        } else if (obj.candidateNumber) {
+                            el.textContent = `Candidate #${obj.candidateNumber}`;
+                        }
+                    } catch (e) {
+                        el.textContent = 'Not selected';
+                    }
+                }
+            });
+        }
+
+        displayVotes();
 
         function resetVoting() {
-            // Optionally clear selections here when explicitly returning home
+            // Clear all selections
+            const categories = ['KING', 'QUEEN', 'PRINCE', 'PRINCESS', 'COUPLE'];
+            categories.forEach(cat => {
+                localStorage.removeItem(`sel:${cat}:num`);
+                localStorage.removeItem(`sel:${cat}:obj`);
+            });
+
+            // Also clear legacy keys
             localStorage.removeItem('kingSelection');
             localStorage.removeItem('selectedKing');
             localStorage.removeItem('queenSelection');
@@ -106,7 +217,9 @@
             localStorage.removeItem('selectedPrincess');
             localStorage.removeItem('coupleSelection');
             localStorage.removeItem('selectedCouple');
-            window.location.href = LANDING_URL;
+            localStorage.removeItem('userPin');
+
+            window.location.href = '/';
         }
     </script>
 </body>

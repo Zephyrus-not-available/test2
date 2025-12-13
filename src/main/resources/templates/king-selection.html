@@ -8,179 +8,150 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" th:href="@{/styles.css}">
     <style>
-        .navy-text {
-            color: #1e3a8a;
-        }
-        
-        .navy-bg {
-            background-color: #1e3a8a;
-        }
-        
+        .navy-text { color: #1e3a8a; }
+        .navy-bg { background-color: #1e3a8a; }
+
         .radio-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
+            gap: 12px;
             justify-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .radio-grid:last-child {
-            grid-template-columns: repeat(4, 1fr);
-            margin-bottom: 0;
-        }
-        
-        .radio-custom-selection {
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            border: 2px solid #6b7280;
-            border-radius: 50%;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.3s;
-        }
-        
-        .radio-custom-selection:checked {
-            background: #1e3a8a;
-            border: 2px solid #1e3a8a;
-        }
-        
-        .radio-custom-selection:checked::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 10px;
-            height: 10px;
-            background: white;
-            border-radius: 50%;
-        }
-        
-        .radio-label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        
-        .next-button {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-            transition: all 0.3s ease;
-        }
-        
-        .next-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
-        }
-        
-        .selection-box {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e5e7eb;
-        }
-
-        .image-container {
-            padding: 24px;
-            padding-bottom: 16px;
         }
 
         .candidate-image {
             width: 100%;
-            height: 300px;
+            height: 280px;
             object-fit: cover;
             border-radius: 16px;
             transition: all 0.4s ease;
         }
 
-        .candidate-info {
-            transition: all 0.3s ease;
-        }
-
-        /* Skeleton styles */
         .skeleton {
-            background-color: #e5e7eb;
-            animation: pulse 1.2s ease-in-out infinite;
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
         }
 
-        .skeleton-text {
-            height: 14px;
-            border-radius: 7px;
+        .skeleton-text { height: 14px; border-radius: 7px; }
+        .skeleton-rounded { border-radius: 9999px; }
+        .skeleton-tile { border-radius: 12px; }
+        .hidden { display: none; }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
-        .skeleton-rounded {
-            border-radius: 9999px;
+        /* Image loading placeholder */
+        .image-loading {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .skeleton-tile {
-            border-radius: 12px;
-        }
-
-        .hidden {
-            display: none;
+        .image-loading::after {
+            content: '👑';
+            font-size: 4rem;
+            opacity: 0.3;
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.55; }
-            100% { opacity: 1; }
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-md mx-auto space-y-8">
-        <!-- Main Card with Carousel -->
-        <div class="bg-white rounded-3xl overflow-hidden card-shadow relative" aria-busy="true">
-            <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 hidden" id="selection-loading">
-                <div class="space-y-3 w-full max-w-xs">
-                    <div class="skeleton skeleton-rounded h-24 w-24 mx-auto"></div>
-                    <div class="skeleton skeleton-text w-1/2 mx-auto"></div>
-                    <div class="skeleton skeleton-text w-3/4 mx-auto"></div>
+<body class="bg-gray-50 min-h-screen">
+    <div class="page-content">
+        <!-- Progress Stepper -->
+        <div class="progress-stepper">
+            <div class="step-dot active" title="King"></div>
+            <div class="step-dot" title="Queen"></div>
+            <div class="step-dot" title="Prince"></div>
+            <div class="step-dot" title="Princess"></div>
+            <div class="step-dot" title="Couple"></div>
+        </div>
+
+        <!-- Category Header -->
+        <div class="category-header">
+            <h1><span class="category-icon">👑</span> Select Your King</h1>
+            <p class="text-gray-500 text-sm mt-1">Choose candidate 1 of 5</p>
+        </div>
+
+        <div class="w-full max-w-md mx-auto px-4 space-y-4">
+            <!-- Main Card with Image -->
+            <div class="bg-white rounded-3xl overflow-hidden card-shadow relative">
+                <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 hidden" id="selection-loading">
+                    <div class="space-y-3 w-full max-w-xs p-4">
+                        <div class="skeleton skeleton-rounded h-20 w-20 mx-auto"></div>
+                        <div class="skeleton skeleton-text w-1/2 mx-auto"></div>
+                        <div class="skeleton skeleton-text w-3/4 mx-auto"></div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <img id="candidate-image" src="" alt="King candidate" class="candidate-image image-loading"
+                         onerror="this.classList.add('image-loading')"
+                         onload="this.classList.remove('image-loading')">
                 </div>
             </div>
-            <img id="candidate-image" src="" alt="King candidate" class="candidate-image">
-        </div>
 
-        <!-- Navy Background Info Section -->
-        <div class="navy-bg text-white text-center py-6 px-6">
-            <div class="space-y-1 candidate-info" id="candidate-info">
-                <p class="text-lg font-semibold" id="candidate-number">Loading...</p>
-                <p class="text-lg font-semibold" id="candidate-name"></p>
-                <p class="text-lg font-semibold" id="candidate-department"></p>
+            <!-- Candidate Info Section -->
+            <div class="category-king text-white text-center py-4 px-4 rounded-2xl">
+                <div class="space-y-1" id="candidate-info">
+                    <p class="text-2xl font-bold" id="candidate-number">-</p>
+                    <p class="text-lg font-medium opacity-90" id="candidate-name"></p>
+                    <p class="text-sm opacity-75" id="candidate-department"></p>
+                </div>
+            </div>
+
+            <!-- Radio Button Selection Box -->
+            <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                <p class="text-sm text-gray-500 text-center mb-3">Tap to select a candidate</p>
+                <form id="selection-form">
+                    <div class="grid grid-cols-5 gap-2" id="options-skeleton">
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                    </div>
+                    <div id="options-container" class="radio-grid"></div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Radio Button Selection Box -->
-    <div class="selection-box w-full max-w-md mx-auto">
-        <form id="selection-form">
-            <div class="grid grid-cols-5 gap-3" id="options-skeleton">
-                <div class="skeleton skeleton-tile h-16"></div>
-                <div class="skeleton skeleton-tile h-16"></div>
-                <div class="skeleton skeleton-tile h-16"></div>
-                <div class="skeleton skeleton-tile h-16"></div>
-                <div class="skeleton skeleton-tile h-16"></div>
-            </div>
-            <div id="options-container" class="radio-grid"></div>
-        </form>
+    <!-- Fixed Bottom Navigation -->
+    <div class="bottom-nav">
+        <button class="btn btn-primary w-full" id="next-btn">
+            Next → Queen
+        </button>
     </div>
 
-    <!-- Navigation Buttons -->
-    <div class="w-full max-w-md mx-auto flex justify-end items-center pt-4 pb-8">
-        <button class="next-button text-white px-8 py-3 rounded-full font-semibold text-lg" id="next-btn">Next</button>
+    <!-- Error Modal -->
+    <div id="selection-error-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full card-shadow slide-in">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl">⚠️</span>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">No Selection Made</h3>
+                <p class="text-gray-600 mb-4">Please select a King candidate before continuing.</p>
+                <button data-close-modal="selection-error-modal" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-semibold transition">
+                    Got it
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="/js/voting.js"></script>
     <script>
-      const QUEEN_SELECTION_URL = '/queen-selection';
-      VotingApp.initSelectionPage({
-        category: 'KING',
-        nextUrl: QUEEN_SELECTION_URL
-      });
+        VotingApp.initSelectionPage({
+            category: 'KING',
+            nextUrl: '/queen-selection'
+        });
     </script>
 </body>
 </html>

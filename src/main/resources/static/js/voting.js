@@ -349,10 +349,10 @@
 
       candidates.forEach((candidate) => {
         const label = document.createElement('label');
-        label.className = 'radio-label';
+        label.className = 'radio-option';
         label.htmlFor = `option-${candidate.candidateNumber}`;
         label.innerHTML = `
-          <span class="text-sm font-medium text-gray-700">${candidate.candidateNumber}</span>
+          <span class="number">${candidate.candidateNumber}</span>
           <input type="radio" id="option-${candidate.candidateNumber}" name="selection" value="${candidate.candidateNumber}" />
         `;
         container.appendChild(label);
@@ -366,8 +366,14 @@
           const cand = candidates.find(c => c.candidateNumber === selectedNumber);
 
           // Play sound and visual feedback
-          const labelEl = evt.target.closest('.radio-label');
+          const labelEl = evt.target.closest('.radio-option');
           playRadioFeedback(labelEl);
+
+          // Update selected state for all options
+          container.querySelectorAll('.radio-option').forEach(opt => {
+            opt.classList.remove('selected');
+          });
+          if (labelEl) labelEl.classList.add('selected');
 
           if (cand) {
             saveSelection(category, cand);
@@ -385,7 +391,12 @@
         const input = document.querySelector(
           `input[name="selection"][value="${selectedNumber}"]`
         );
-        if (input) input.checked = true;
+        if (input) {
+          input.checked = true;
+          // Highlight the selected option
+          const labelEl = input.closest('.radio-option');
+          if (labelEl) labelEl.classList.add('selected');
+        }
         updateCandidateDisplay(saved);
       } else selectedNumber = null;
     }

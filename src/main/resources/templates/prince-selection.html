@@ -1,82 +1,114 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Prince Selection - King & Queen Voting</title>
-  <meta name="api-base" content="/api">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" th:href="@{/styles.css}">
-  <style>
-    .radio-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; justify-items: center; margin-bottom: 20px; }
-    .radio-label { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
-    .selection-box { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
-    .candidate-image { width: 100%; height: 300px; object-fit: cover; border-radius: 16px; transition: all 0.4s ease; }
-    .skeleton { background-color: #e5e7eb; animation: pulse 1.2s ease-in-out infinite; }
-    .skeleton-text { height: 14px; border-radius: 7px; }
-    .skeleton-rounded { border-radius: 9999px; }
-    .skeleton-tile { border-radius: 12px; }
-    .hidden { display: none; }
-    @keyframes pulse { 0%{opacity:1;}50%{opacity:.55;}100%{opacity:1;} }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Prince Selection - King & Queen Voting</title>
+    <meta name="api-base" content="/api">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/styles.css}">
+    <style>
+        .radio-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; justify-items: center; }
+        .candidate-image { width: 100%; height: 280px; object-fit: cover; border-radius: 16px; transition: all 0.4s ease; }
+        .skeleton { background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .skeleton-text { height: 14px; border-radius: 7px; }
+        .skeleton-tile { border-radius: 12px; }
+        .hidden { display: none; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .image-loading { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); display: flex; align-items: center; justify-content: center; }
+        .image-loading::after { content: '🤴'; font-size: 4rem; opacity: 0.3; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.1); opacity: 0.5; } }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
-  <div class="w-full max-w-md mx-auto space-y-8">
-    <div class="bg-white rounded-3xl overflow-hidden card-shadow relative" aria-busy="true">
-      <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 hidden" id="selection-loading">
-        <div class="space-y-3 w-full max-w-xs">
-          <div class="skeleton skeleton-rounded h-24 w-24 mx-auto"></div>
-          <div class="skeleton skeleton-text w-1/2 mx-auto"></div>
-          <div class="skeleton skeleton-text w-3/4 mx-auto"></div>
+<body class="bg-gray-50 min-h-screen">
+    <div class="page-content">
+        <!-- Progress Stepper -->
+        <div class="progress-stepper">
+            <div class="step-dot completed" title="King"></div>
+            <div class="step-dot completed" title="Queen"></div>
+            <div class="step-dot active" title="Prince"></div>
+            <div class="step-dot" title="Princess"></div>
+            <div class="step-dot" title="Couple"></div>
         </div>
-      </div>
-      <img id="candidate-image" src="" alt="Prince candidate" class="candidate-image">
-    </div>
-    <div class="text-center py-6 px-6 bg-blue-800 text-white">
-      <p class="text-lg font-semibold" id="candidate-number">Loading...</p>
-      <p class="text-lg font-semibold" id="candidate-name"></p>
-      <p class="text-lg font-semibold" id="candidate-department"></p>
-    </div>
-  </div>
 
-  <div class="selection-box w-full max-w-md mx-auto">
-    <form id="selection-form">
-      <div class="grid grid-cols-5 gap-3" id="options-skeleton">
-        <div class="skeleton skeleton-tile h-16"></div>
-        <div class="skeleton skeleton-tile h-16"></div>
-        <div class="skeleton skeleton-tile h-16"></div>
-        <div class="skeleton skeleton-tile h-16"></div>
-        <div class="skeleton skeleton-tile h-16"></div>
-      </div>
-      <div id="options-container" class="radio-grid"></div>
-    </form>
-  </div>
-
-  <div class="w-full max-w-md mx-auto flex justify-between items-center pt-4 pb-8">
-    <button id="prev-btn" class="bg-gray-200 text-gray-800 px-8 py-3 rounded-full font-semibold text-lg hover:bg-gray-300 transition">Previous</button>
-    <button id="next-btn" class="text-white px-8 py-3 rounded-full font-semibold text-lg" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 15px rgba(37,99,235,0.4);">Next</button>
-  </div>
-
-  <div id="selection-error-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl p-8 max-w-md w-full card-shadow slide-in">
-      <div class="text-center">
-        <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
+        <!-- Category Header -->
+        <div class="category-header">
+            <h1><span class="category-icon">🤴</span> Select Your Prince</h1>
+            <p class="text-gray-500 text-sm mt-1">Choose candidate 3 of 5</p>
         </div>
-        <h3 class="text-2xl font-bold text-gray-800 mb-4">No Selection</h3>
-        <p class="text-gray-600 mb-6">Please choose a PRINCE candidate before continuing.</p>
-        <button data-close-modal="selection-error-modal" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition">Try Again</button>
-      </div>
-    </div>
-  </div>
 
-  <script src="/js/voting.js"></script>
-  <script>
-    const PRINCESS_SELECTION_URL = '/princess-selection';
-    const QUEEN_SELECTION_URL = '/queen-selection';
-    VotingApp.initSelectionPage({ category: 'PRINCE', nextUrl: PRINCESS_SELECTION_URL, prevUrl: QUEEN_SELECTION_URL });
-  </script>
+        <div class="w-full max-w-md mx-auto px-4 space-y-4">
+            <!-- Main Card with Image -->
+            <div class="bg-white rounded-3xl overflow-hidden card-shadow relative">
+                <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 hidden" id="selection-loading">
+                    <div class="space-y-3 w-full max-w-xs p-4">
+                        <div class="skeleton skeleton-rounded h-20 w-20 mx-auto"></div>
+                        <div class="skeleton skeleton-text w-1/2 mx-auto"></div>
+                        <div class="skeleton skeleton-text w-3/4 mx-auto"></div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <img id="candidate-image" src="" alt="Prince candidate" class="candidate-image image-loading"
+                         onerror="this.classList.add('image-loading')"
+                         onload="this.classList.remove('image-loading')">
+                </div>
+            </div>
+
+            <!-- Candidate Info Section -->
+            <div class="category-prince text-white text-center py-4 px-4 rounded-2xl">
+                <div class="space-y-1" id="candidate-info">
+                    <p class="text-2xl font-bold" id="candidate-number">-</p>
+                    <p class="text-lg font-medium opacity-90" id="candidate-name"></p>
+                    <p class="text-sm opacity-75" id="candidate-department"></p>
+                </div>
+            </div>
+
+            <!-- Radio Button Selection Box -->
+            <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                <p class="text-sm text-gray-500 text-center mb-3">Tap to select a candidate</p>
+                <form id="selection-form">
+                    <div class="grid grid-cols-5 gap-2" id="options-skeleton">
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                        <div class="skeleton skeleton-tile h-16"></div>
+                    </div>
+                    <div id="options-container" class="radio-grid"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Bottom Navigation -->
+    <div class="bottom-nav">
+        <button id="prev-btn" class="btn btn-secondary">← Queen</button>
+        <button class="btn btn-primary" id="next-btn">Next → Princess</button>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="selection-error-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full card-shadow slide-in">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl">⚠️</span>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">No Selection Made</h3>
+                <p class="text-gray-600 mb-4">Please select a Prince candidate before continuing.</p>
+                <button data-close-modal="selection-error-modal" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-semibold transition">
+                    Got it
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/voting.js"></script>
+    <script>
+        VotingApp.initSelectionPage({
+            category: 'PRINCE',
+            nextUrl: '/princess-selection',
+            prevUrl: '/queen-selection'
+        });
+    </script>
 </body>
 </html>

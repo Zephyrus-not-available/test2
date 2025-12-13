@@ -250,25 +250,22 @@
     <script th:src="@{/js/voting.js}"></script>
     <script th:inline="javascript">
         function loadSelections() {
-            // Load selections from localStorage
-            const kingSelection = localStorage.getItem('kingSelection');
-            const queenSelection = localStorage.getItem('queenSelection');
-            const princeSelection = localStorage.getItem('princeSelection');
-            const princessSelection = localStorage.getItem('princessSelection');
-            const coupleSelection = localStorage.getItem('coupleSelection');
+            // Load selections using VotingApp's new storage keys
+            const selections = VotingApp.loadSelectionsForSummary();
 
-            // Get candidate names if available
-            const selectedKing = JSON.parse(localStorage.getItem('selectedKing') || '{}');
-            const selectedQueen = JSON.parse(localStorage.getItem('selectedQueen') || '{}');
-            const selectedPrince = JSON.parse(localStorage.getItem('selectedPrince') || '{}');
-            const selectedPrincess = JSON.parse(localStorage.getItem('selectedPrincess') || '{}');
-            const selectedCouple = JSON.parse(localStorage.getItem('selectedCouple') || '{}');
+            const getCandidateName = (category) => {
+                const item = selections.find(s => s.category === category);
+                if (item && item.selection) {
+                    return item.selection.name || `Candidate #${item.selection.candidateNumber}`;
+                }
+                return 'Not selected';
+            };
 
-            document.getElementById('king-choice').textContent = `King- ${selectedKing.name || kingSelection || 'Not selected'}`;
-            document.getElementById('queen-choice').textContent = `Queen- ${selectedQueen.name || queenSelection || 'Not selected'}`;
-            document.getElementById('prince-choice').textContent = `Prince- ${selectedPrince.name || princeSelection || 'Not selected'}`;
-            document.getElementById('princess-choice').textContent = `Princess- ${selectedPrincess.name || princessSelection || 'Not selected'}`;
-            document.getElementById('couple-choice').textContent = `Best Couple- ${selectedCouple.name || coupleSelection || 'Not selected'}`;
+            document.getElementById('king-choice').textContent = `King- ${getCandidateName('KING')}`;
+            document.getElementById('queen-choice').textContent = `Queen- ${getCandidateName('QUEEN')}`;
+            document.getElementById('prince-choice').textContent = `Prince- ${getCandidateName('PRINCE')}`;
+            document.getElementById('princess-choice').textContent = `Princess- ${getCandidateName('PRINCESS')}`;
+            document.getElementById('couple-choice').textContent = `Best Couple- ${getCandidateName('COUPLE')}`;
         }
 
         const COUPLE_SELECTION_URL = /*[[@{/couple-selection}]]*/ '/couple-selection';

@@ -178,18 +178,30 @@
 
             categories.forEach(({ key, elId }) => {
                 const objKey = `sel:${key}:obj`;
+                const numKey = `sel:${key}:num`;
                 const stored = localStorage.getItem(objKey);
+                const storedNum = localStorage.getItem(numKey);
                 const el = document.getElementById(elId);
 
-                if (stored && el) {
-                    try {
-                        const obj = JSON.parse(stored);
-                        if (obj.name) {
-                            el.textContent = obj.name;
-                        } else if (obj.candidateNumber) {
-                            el.textContent = `Candidate #${obj.candidateNumber}`;
+                if (el) {
+                    if (stored) {
+                        try {
+                            const obj = JSON.parse(stored);
+                            if (obj.name) {
+                                el.textContent = obj.name;
+                            } else if (obj.candidateNumber) {
+                                el.textContent = `Candidate #${obj.candidateNumber}`;
+                            } else if (storedNum) {
+                                el.textContent = `Candidate #${storedNum}`;
+                            } else {
+                                el.textContent = 'Not selected';
+                            }
+                        } catch (e) {
+                            el.textContent = storedNum ? `Candidate #${storedNum}` : 'Not selected';
                         }
-                    } catch (e) {
+                    } else if (storedNum) {
+                        el.textContent = `Candidate #${storedNum}`;
+                    } else {
                         el.textContent = 'Not selected';
                     }
                 }

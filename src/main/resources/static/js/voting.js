@@ -129,9 +129,38 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin }),
     });
-    if (res.status === 404) return { valid: false, alreadyVoted: false };
+
+    // Handle rate limiting
+    if (res.status === 429) {
+      const data = await res.json();
+      throw new Error(data.message || 'Too many attempts. Please wait before trying again.');
+    }
+
+    // Handle invalid PIN
+    if (res.status === 404) {
+      try {
+        const data = await res.json();
+        const remaining = data.remainingAttempts;
+        if (remaining !== undefined && remaining <= 3) {
+          return { valid: false, alreadyVoted: false, remainingAttempts: remaining };
+        }
+      } catch (e) {}
+      return { valid: false, alreadyVoted: false };
+    }
+
     if (!res.ok) throw new Error(await res.text() || 'Unable to verify PIN');
     return res.json();
+  };
+
+  // Check device voting status
+  const checkDeviceStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/check-device`);
+      if (!res.ok) return { hasVoted: false };
+      return res.json();
+    } catch (e) {
+      return { hasVoted: false };
+    }
   };
 
   const fetchCandidates = async (category) => {
@@ -445,6 +474,14 @@
   document.addEventListener('DOMContentLoaded', initAuto);
   else initAuto();
 
+  // --- Load all selections for summary page ---
+  const loadSelectionsForSummary = () => {
+    return CATEGORIES.map(category => ({
+      category,
+      selection: loadSelection(category)
+    }));
+  };
+
   // --- Public API ---
   window.VotingApp = Object.assign(window.VotingApp || {}, {
     API_BASE,
@@ -453,11 +490,13 @@
     getStoredPin,
     savePin,
     verifyPin,
+    checkDeviceStatus,
     fetchCandidates,
     submitVotes,
     saveSelection,
     loadSelection,
     clearSelections,
+    loadSelectionsForSummary,
     initSelectionPage,
     layoutOptions,
     playKeypadFeedback,

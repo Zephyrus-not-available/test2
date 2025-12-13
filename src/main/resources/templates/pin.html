@@ -313,15 +313,26 @@
         try {
             const result = await VotingApp.verifyPin(pin);
             if (!result.valid) {
-                showError('The PIN you entered does not exist. Please try again.', 'Invalid PIN');
+                let message = 'The PIN you entered does not exist. Please try again.';
+                if (result.remainingAttempts !== undefined && result.remainingAttempts <= 3) {
+                    message += ` (${result.remainingAttempts} attempts remaining)`;
+                }
+                showError(message, 'Invalid PIN');
                 return;
             }
             if (result.alreadyVoted) {
-                showError('This PIN has already been used to vote. Please contact an admin if you believe this is an error.', 'Already voted');
+                showError('This network/device has already been used to vote. Only one vote is allowed per network.', 'Already Voted');
                 return;
             }
             VotingApp.savePin(pin);
-            VotingApp.getDeviceId();
+
+            // Store server-provided deviceId if available
+            if (result.deviceId) {
+                localStorage.setItem('deviceId', result.deviceId);
+            } else {
+                VotingApp.getDeviceId();
+            }
+
             const isAdmin = (typeof result.isAdmin !== 'undefined') ? result.isAdmin : (result.role === 'admin');
             window.location.assign(isAdmin ? '/admin-dashboard' : '/king-selection');
         } catch (err) {
@@ -333,6 +344,19 @@
         }
     }
 
+    // Check if device already voted on page load
+    async function checkDeviceStatus() {
+        try {
+            const data = await VotingApp.checkDeviceStatus();
+            if (data.hasVoted) {
+                showError('This network/device has already been used to vote. Only one vote is allowed per network.', 'Already Voted');
+            }
+        } catch (err) {
+            // Silently fail - device check is optional
+            console.log('Device check failed:', err);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         pinInputs.forEach((input, idx) => {
             input.dataset.index = idx;
@@ -340,6 +364,9 @@
         });
         setActiveInput(pinInputs[0]);
         setTimeout(() => window.scrollTo(0, 0), 0);
+
+        // Check device status on load
+        checkDeviceStatus();
     });
 </script>
 

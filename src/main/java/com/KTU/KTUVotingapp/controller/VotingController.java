@@ -6,7 +6,6 @@ import com.KTU.KTUVotingapp.dto.VoteResponse;
 import com.KTU.KTUVotingapp.model.Category;
 import com.KTU.KTUVotingapp.service.VotingService;
 import jakarta.validation.Valid;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -101,28 +100,58 @@ public class VotingController {
         return ResponseEntity.ok(hasVoted);
     }
 
+    /**
+     * Resolve device ID using IP-only hash.
+     * This ensures same ID across all browsers and incognito mode.
+     */
     private String resolveDeviceId(HttpServletRequest request) {
-        // Enforce one vote per IP (covers new browsers/incognito on same machine/network)
+        // Always use IP-only based ID for consistency
         return deriveIpOnlyId(request);
     }
 
+    /**
+     * Derive device ID from IP address only.
+     * Consistent across all browsers/incognito on same network.
+     */
     private String deriveIpOnlyId(HttpServletRequest request) {
         if (request == null) {
             return null;
         }
-        String ip = request.getRemoteAddr();
-        String source = (ip == null ? "" : ip);
+        String ip = getClientIpAddress(request);
+        String source = (ip == null ? "unknown" : ip);
+
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(source.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
-            for (byte b : hash) {
-                sb.append(String.format("%02x", b));
+            for (int i = 0; i < 16; i++) {
+                sb.append(String.format("%02x", hash[i]));
             }
-            return sb.toString();
+            return "ip-" + sb;
         } catch (NoSuchAlgorithmException e) {
-            return source; // Fallback: raw source if hashing unavailable
+            return "ip-" + ip.replace(".", "-").replace(":", "-");
         }
+    }
+
+    private String getClientIpAddress(HttpServletRequest request) {
+        String[] headers = {
+            "X-Forwarded-For",
+            "X-Real-IP",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP"
+        };
+
+        for (String header : headers) {
+            String ip = request.getHeader(header);
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                if (ip.contains(",")) {
+                    ip = ip.split(",")[0].trim();
+                }
+                return ip;
+            }
+        }
+
+        return request.getRemoteAddr();
     }
 }
 

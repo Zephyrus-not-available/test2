@@ -324,9 +324,10 @@
       } else selectedNumber = null;
     }
 
-    // Show first candidate's data on initial load if no selection saved
+    // Show random candidate's data on initial load if no selection saved
     if (!selectedNumber && candidates.length > 0) {
-      updateCandidateDisplay(candidates[0]);
+      const randomIndex = Math.floor(Math.random() * candidates.length);
+      updateCandidateDisplay(candidates[randomIndex]);
     }
 
     updateNextButton();

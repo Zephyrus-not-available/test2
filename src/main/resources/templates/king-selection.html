@@ -131,31 +131,13 @@
                 <div id="options-container" class="radio-grid"></div>
             </form>
         </div>
-    </div>
 
-    <!-- Error Modal for missing selection -->
-    <div id="selection-error-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-full card-shadow slide-in">
-            <div class="text-center">
-                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-4">No Selection</h3>
-                <p class="text-gray-600 mb-6">Please choose a KING candidate before continuing.</p>
-                
-                <button data-close-modal="selection-error-modal" class="w-full gradient-bg text-white py-3 rounded-xl font-semibold hover:opacity-90 transition">
-                    Try Again
-                </button>
-            </div>
+        <!-- Navigation Buttons -->
+        <div class="flex justify-end items-center pt-4 pb-8">
+            <button onclick="handleNext()" class="next-button text-white px-8 py-3 rounded-full font-semibold text-lg" id="next-btn">
+                Next
+            </button>
         </div>
-    </div>
-    <!-- Next Button -->
-    <div class="fixed bottom-8 right-8">
-        <button onclick="handleNext()" class="next-button text-white px-8 py-3 rounded-full font-semibold text-lg" id="next-btn">
-            Next
-        </button>
     </div>
 
     <script th:src="@{/js/voting.js}"></script>

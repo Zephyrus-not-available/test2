@@ -151,35 +151,7 @@
     const ADMIN_DASHBOARD_URL = /*[[@{/admin-dashboard}]]*/ '/admin-dashboard';
     const KING_SELECTION_URL = /*[[@{/king-selection}]]*/ '/king-selection';
 
-
-
-    document.getElementById('pin1').focus();
-
-
-
-    function moveFocus(current, nextId) {
-
-        if (current.value.length === 1 && nextId) {
-
-            document.getElementById(nextId).focus();
-
-        }
-
-    }
-
-
-
-    function handleBackspace(event, current, prevId) {
-
-        if (event.key === 'Backspace' && current.value === '' && prevId) {
-
-            document.getElementById(prevId).focus();
-
-        }
-
-    }
-
-
+    // document.getElementById('pin1').focus();
 
     // src/main/resources/templates/pin.html
 
@@ -195,11 +167,7 @@
 
                 input.value = digit;
 
-                if (i < 4) {
-
-                    document.getElementById(pins[i + 1]).focus();
-
-                } else {
+                if (i === 4) {
 
                     // Call the existing continue handler which uses VotingApp.verifyPin internally
 

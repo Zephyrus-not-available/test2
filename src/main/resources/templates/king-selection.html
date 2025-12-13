@@ -2,8 +2,9 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>King Selection - King & Queen Voting</title>
+    <meta name="api-base" content="/api">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" th:href="@{/styles.css}">
     <style>
@@ -99,55 +100,87 @@
         .candidate-info {
             transition: all 0.3s ease;
         }
+
+        /* Skeleton styles */
+        .skeleton {
+            background-color: #e5e7eb;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        .skeleton-text {
+            height: 14px;
+            border-radius: 7px;
+        }
+
+        .skeleton-rounded {
+            border-radius: 9999px;
+        }
+
+        .skeleton-tile {
+            border-radius: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.55; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md mx-auto space-y-8">
         <!-- Main Card with Carousel -->
-        <div class="bg-white rounded-3xl overflow-hidden card-shadow">
-            <!-- Title -->
-            <div class="p-6 text-center">
-                <h1 class="text-2xl font-bold navy-text">KING Selection</h1>
-            </div>
-            
-            <!-- Image Display -->
-            <div class="image-container">
-                <img id="candidate-image" src="" alt="King candidate" class="candidate-image">
-            </div>
-            
-            <!-- Navy Background Info Section -->
-            <div class="navy-bg text-white text-center py-6 px-6">
-                <div class="space-y-1 candidate-info" id="candidate-info">
-                    <p class="text-lg font-semibold" id="candidate-number">Loading...</p>
-                    <p class="text-lg font-semibold" id="candidate-name"></p>
-                    <p class="text-lg font-semibold" id="candidate-department"></p>
+        <div class="bg-white rounded-3xl overflow-hidden card-shadow relative" aria-busy="true">
+            <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 hidden" id="selection-loading">
+                <div class="space-y-3 w-full max-w-xs">
+                    <div class="skeleton skeleton-rounded h-24 w-24 mx-auto"></div>
+                    <div class="skeleton skeleton-text w-1/2 mx-auto"></div>
+                    <div class="skeleton skeleton-text w-3/4 mx-auto"></div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Radio Button Selection Box -->
-        <div class="selection-box">
-            <form id="selection-form">
-                <div id="options-container" class="radio-grid"></div>
-            </form>
+            <img id="candidate-image" src="" alt="King candidate" class="candidate-image">
         </div>
 
-        <!-- Navigation Buttons -->
-        <div class="flex justify-end items-center pt-4 pb-8">
-            <button onclick="handleNext()" class="next-button text-white px-8 py-3 rounded-full font-semibold text-lg" id="next-btn">
-                Next
-            </button>
+        <!-- Navy Background Info Section -->
+        <div class="navy-bg text-white text-center py-6 px-6">
+            <div class="space-y-1 candidate-info" id="candidate-info">
+                <p class="text-lg font-semibold" id="candidate-number">Loading...</p>
+                <p class="text-lg font-semibold" id="candidate-name"></p>
+                <p class="text-lg font-semibold" id="candidate-department"></p>
+            </div>
         </div>
     </div>
 
-    <script th:src="@{/js/voting.js}"></script>
-    <script th:inline="javascript">
-        const QUEEN_SELECTION_URL = /*[[@{/queen-selection}]]*/ '/queen-selection';
+    <!-- Radio Button Selection Box -->
+    <div class="selection-box w-full max-w-md mx-auto">
+        <form id="selection-form">
+            <div class="grid grid-cols-5 gap-3" id="options-skeleton">
+                <div class="skeleton skeleton-tile h-16"></div>
+                <div class="skeleton skeleton-tile h-16"></div>
+                <div class="skeleton skeleton-tile h-16"></div>
+                <div class="skeleton skeleton-tile h-16"></div>
+                <div class="skeleton skeleton-tile h-16"></div>
+            </div>
+            <div id="options-container" class="radio-grid"></div>
+        </form>
+    </div>
 
-        VotingApp.initSelectionPage({
-            category: 'KING',
-            nextUrl: QUEEN_SELECTION_URL
-        });
+    <!-- Navigation Buttons -->
+    <div class="w-full max-w-md mx-auto flex justify-end items-center pt-4 pb-8">
+        <button class="next-button text-white px-8 py-3 rounded-full font-semibold text-lg" id="next-btn">Next</button>
+    </div>
+
+    <script src="/js/voting.js"></script>
+    <script>
+      const QUEEN_SELECTION_URL = '/queen-selection';
+      VotingApp.initSelectionPage({
+        category: 'KING',
+        nextUrl: QUEEN_SELECTION_URL
+      });
     </script>
 </body>
 </html>

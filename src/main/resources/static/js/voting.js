@@ -20,38 +20,29 @@
   };
   const capitalize = (s = '') => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
-  // --- Local storage helpers ---
-  const deviceKey = 'votingDeviceId';
-  const pinKey = 'votingPin';
-  const selectionValueKey = (c) => `${c.toLowerCase()}Selection`;
-  const selectedObjectKey = (c) => `selected${capitalize(c.toLowerCase())}`;
-
+  // device id + pin storage
   const getDeviceId = () => {
-    let id = localStorage.getItem(deviceKey);
+    let id = localStorage.getItem('deviceId');
     if (!id) {
-      id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      localStorage.setItem(deviceKey, id);
+      id = 'dev-' + Math.random().toString(36).slice(2);
+      localStorage.setItem('deviceId', id);
     }
     return id;
   };
-  const getStoredPin = () => localStorage.getItem(pinKey) || '';
-  const savePin = (p) => { if (typeof p === 'string') localStorage.setItem(pinKey, p); };
+  const savePin = (pin) => localStorage.setItem('userPin', pin);
+  const getStoredPin = () => localStorage.getItem('userPin');
 
-  const saveSelection = (category, candidate) => {
-    if (!category || !candidate) return;
-    // Defensive: ensure candidate has the minimal shape we need
-    const safe = Object.assign({}, candidate || {});
-    if (typeof safe.candidateNumber === 'undefined' && safe.id) safe.candidateNumber = safe.id;
-    if (typeof safe.name === 'undefined') safe.name = '';
-    localStorage.setItem(selectionValueKey(category), String(safe.candidateNumber));
-    localStorage.setItem(selectedObjectKey(category), JSON.stringify(safe));
+  // selection storage keys
+  const selectionValueKey = (category) => `sel:${category}:num`;
+  const selectedObjectKey = (category) => `sel:${category}:obj`;
+  const saveSelection = (category, obj) => {
+    localStorage.setItem(selectionValueKey(category), String(obj?.candidateNumber || ''));
+    localStorage.setItem(selectedObjectKey(category), JSON.stringify(obj || {}));
   };
   const loadSelection = (category) => {
     const obj = localStorage.getItem(selectedObjectKey(category));
     if (obj) {
-      try { return JSON.parse(obj); } catch (e) {}
+      try { return JSON.parse(obj); } catch(_) {}
     }
     const num = localStorage.getItem(selectionValueKey(category));
     if (num) return { candidateNumber: parseInt(num, 10) };
@@ -62,6 +53,74 @@
     localStorage.removeItem(selectionValueKey(c));
     localStorage.removeItem(selectedObjectKey(c));
   });
+
+  // --- Skeleton helpers ---
+  const pageSkeletons = new Set();
+  const registerSkeleton = (id) => {
+    const el = document.getElementById(id);
+    if (el) pageSkeletons.add(el);
+    return el;
+  };
+  const registerAllSkeletons = () => {
+    // Register common skeleton IDs
+    ['selection-loading', 'options-skeleton'].forEach(registerSkeleton);
+  };
+  const showSkeletons = () => pageSkeletons.forEach(el => el.classList.remove('hidden'));
+  const hideSkeletons = () => pageSkeletons.forEach(el => el.classList.add('hidden'));
+
+  // --- Keypad feedback ---
+  let audioContext = null;
+  const getAudioContext = () => {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+  };
+  const playKeypadFeedback = (btn) => {
+    if (btn) {
+      btn.classList.add('keypad-pressed');
+      setTimeout(() => btn.classList.remove('keypad-pressed'), 150);
+    }
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      oscillator.frequency.value = 1200;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.08);
+    } catch (e) {}
+  };
+
+  // Sound and visual feedback for radio button selection
+  const playRadioFeedback = (labelEl) => {
+    // Visual scale effect
+    if (labelEl) {
+      labelEl.style.transform = 'scale(1.1)';
+      labelEl.style.transition = 'transform 0.15s ease';
+      setTimeout(() => {
+        labelEl.style.transform = 'scale(1)';
+      }, 150);
+    }
+    // Play selection sound (higher pitch, pleasant tone)
+    try {
+      const ctx = getAudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      oscillator.frequency.value = 880; // A5 note - pleasant selection sound
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.1);
+    } catch (e) {}
+  };
 
   // --- API helpers ---
   const verifyPin = async (pin) => {
@@ -107,11 +166,9 @@
 
     const css = `
       .radio-grid {
-        display: grid;
+        display: grid !important;
         grid-template-columns: repeat(5, 1fr) !important;
-        gap: 18px;
-        align-items: start;
-        justify-items: center;
+        gap: 12px;
         padding: 8px;
       }
       .radio-label {
@@ -216,6 +273,9 @@
     const candidateName = document.getElementById('candidate-name');
     const candidateDepartment = document.getElementById('candidate-department');
 
+    // Register all skeleton elements for this page
+    registerAllSkeletons();
+
     // ⭐ NEW FIX: Ensure buttons NEVER live inside the grid container
     const ensureButtonsOutside = () => {
       if (container && nextBtn && container.contains(nextBtn)) {
@@ -227,6 +287,7 @@
     };
     ensureButtonsOutside();
 
+    showSkeletons();
     let candidates = [];
     try {
       candidates = await fetchCandidates(category);
@@ -237,8 +298,10 @@
         nextBtn.disabled = true;
         nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
       }
+      hideSkeletons();
       return;
     }
+    hideSkeletons();
 
     if (!Array.isArray(candidates) || candidates.length === 0) {
       if (container)
@@ -275,7 +338,6 @@
         nextBtn.disabled = false;
       } else {
         nextBtn.style.opacity = '0.7';
-        nextBtn.style.cursor = 'not-allowed';
         nextBtn.disabled = true;
       }
     };
@@ -302,6 +364,10 @@
         input.addEventListener('change', (evt) => {
           selectedNumber = parseInt(evt.target.value, 10);
           const cand = candidates.find(c => c.candidateNumber === selectedNumber);
+
+          // Play sound and visual feedback
+          const labelEl = evt.target.closest('.radio-label');
+          playRadioFeedback(labelEl);
 
           if (cand) {
             saveSelection(category, cand);
@@ -380,12 +446,10 @@
     submitVotes,
     saveSelection,
     loadSelection,
-    loadSelectionsForSummary: () => CATEGORIES.map(c => ({
-      category: c,
-      selection: loadSelection(c),
-    })),
     clearSelections,
     initSelectionPage,
     layoutOptions,
+    playKeypadFeedback,
+    playRadioFeedback,
   });
 })();

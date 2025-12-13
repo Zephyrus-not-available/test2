@@ -6,13 +6,77 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <title>Enter PIN - King & Queen Voting</title>
+
+    <meta name="api-base" content="/api">
 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="stylesheet" th:href="@{/styles.css}">
+
+    <style>
+        .pin-input {
+            width: 44px;
+            height: 44px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 20px;
+        }
+
+        .pin-input--active {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .keypad-key {
+            transform: scale(1);
+            transition: transform .12s ease;
+        }
+
+        .keypad-pressed {
+            transform: scale(0.94);
+        }
+
+        .skeleton {
+            background-color: #e5e7eb;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        .skeleton-text {
+            height: 14px;
+            border-radius: 7px;
+        }
+
+        .skeleton-rounded {
+            border-radius: 9999px;
+        }
+
+        .skeleton-tile {
+            border-radius: 12px;
+            height: 44px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.55;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
 
 </head>
 
@@ -45,50 +109,45 @@
 
         <div class="flex justify-center gap-3 md:gap-4 mb-6 md:mb-8">
 
-            <label for="pin1" class="sr-only">PIN Digit 1</label>
-            <input type="password" maxlength="1" class="pin-input" id="pin1" oninput="moveFocus(this, 'pin2')" onkeydown="handleBackspace(event, this, null)">
+            <input type="password" maxlength="1" class="pin-input" id="pin1" readonly aria-label="PIN digit 1">
 
-            <label for="pin2" class="sr-only">PIN Digit 2</label>
-            <input type="password" maxlength="1" class="pin-input" id="pin2" oninput="moveFocus(this, 'pin3')" onkeydown="handleBackspace(event, this, 'pin1')">
+            <input type="password" maxlength="1" class="pin-input" id="pin2" readonly aria-label="PIN digit 2">
 
-            <label for="pin3" class="sr-only">PIN Digit 3</label>
-            <input type="password" maxlength="1" class="pin-input" id="pin3" oninput="moveFocus(this, 'pin4')" onkeydown="handleBackspace(event, this, 'pin2')">
+            <input type="password" maxlength="1" class="pin-input" id="pin3" readonly aria-label="PIN digit 3">
 
-            <label for="pin4" class="sr-only">PIN Digit 4</label>
-            <input type="password" maxlength="1" class="pin-input" id="pin4" oninput="moveFocus(this, 'pin5')" onkeydown="handleBackspace(event, this, 'pin3')">
+            <input type="password" maxlength="1" class="pin-input" id="pin4" readonly aria-label="PIN digit 4">
 
-            <label for="pin5" class="sr-only">PIN Digit 5</label>
-            <input type="password" maxlength="1" class="pin-input" id="pin5" onkeydown="handleBackspace(event, this, 'pin4')">
+            <input type="password" maxlength="1" class="pin-input" id="pin5" readonly aria-label="PIN digit 5">
 
         </div>
 
 
 
-        <div class="grid grid-cols-3 gap-2 md:gap-3 mb-4">
+        <div class="grid grid-cols-3 gap-2 md:gap-3 mb-4" id="pin-keypad">
 
-            <button onclick="addPin('1')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">1</button>
+            <button onclick="addPin('1')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">1</button>
 
-            <button onclick="addPin('2')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">2</button>
+            <button onclick="addPin('2')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">2</button>
 
-            <button onclick="addPin('3')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">3</button>
+            <button onclick="addPin('3')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">3</button>
 
-            <button onclick="addPin('4')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">4</button>
+            <button onclick="addPin('4')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">4</button>
 
-            <button onclick="addPin('5')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">5</button>
+            <button onclick="addPin('5')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">5</button>
 
-            <button onclick="addPin('6')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">6</button>
+            <button onclick="addPin('6')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">6</button>
 
-            <button onclick="addPin('7')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">7</button>
+            <button onclick="addPin('7')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">7</button>
 
-            <button onclick="addPin('8')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">8</button>
+            <button onclick="addPin('8')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">8</button>
 
-            <button onclick="addPin('9')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">9</button>
+            <button onclick="addPin('9')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">9</button>
 
             <button onclick="clearPin()" class="bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-3 md:py-4 rounded-xl transition text-sm md:text-base">Clear</button>
 
-            <button onclick="addPin('0')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">0</button>
+            <button onclick="addPin('0')" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">0</button>
 
-            <button onclick="deletePin()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition">←</button>
+            <button onclick="deletePin()" class="keypad-key bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 md:py-4 rounded-xl transition" aria-label="Delete digit">←</button>
 
         </div>
 
@@ -143,207 +202,147 @@
 
 
 
-<script th:src="@{/js/voting.js}"></script>
+<div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 hidden" id="pin-loading" aria-hidden="true">
+    <div class="space-y-4 w-full max-w-xs">
+        <div class="skeleton skeleton-rounded h-16 w-16 mx-auto"></div>
+        <div class="skeleton skeleton-text w-3/4 mx-auto"></div>
+        <div class="grid grid-cols-3 gap-3">
+            <div class="skeleton skeleton-tile"></div>
+            <div class="skeleton skeleton-tile"></div>
+            <div class="skeleton skeleton-tile"></div>
+        </div>
 
-<script th:inline="javascript">
+    </div>
+</div>
 
-    const ADMIN_PIN = '99999';
-    const ADMIN_DASHBOARD_URL = /*[[@{/admin-dashboard}]]*/ '/admin-dashboard';
-    const KING_SELECTION_URL = /*[[@{/king-selection}]]*/ '/king-selection';
+<script src="/js/voting.js"></script>
+<script>
+    const pinInputs = ['pin1', 'pin2', 'pin3', 'pin4', 'pin5'].map(id => document.getElementById(id));
+    const pinLoadingOverlay = document.getElementById('pin-loading');
 
-    // document.getElementById('pin1').focus();
-
-    // src/main/resources/templates/pin.html
-
-    function addPin(digit) {
-
-        const pins = ['pin1', 'pin2', 'pin3', 'pin4', 'pin5'];
-
-        for (let i = 0; i < pins.length; i++) {
-
-            const input = document.getElementById(pins[i]);
-
-            if (input.value === '') {
-
-                input.value = digit;
-
-                if (i === 4) {
-
-                    // Call the existing continue handler which uses VotingApp.verifyPin internally
-
-                    handleContinue();
-
-                }
-
-                break;
-
-            }
-
+    // Web Audio API for keypad sound
+    let audioContext = null;
+    function getAudioContext() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
-
+        return audioContext;
     }
 
-
-
-    function deletePin() {
-
-        const pins = ['pin1', 'pin2', 'pin3', 'pin4', 'pin5'];
-
-        for (let i = pins.length - 1; i >= 0; i--) {
-
-            const input = document.getElementById(pins[i]);
-
-            if (input.value !== '') {
-
-                input.value = '';
-
-                input.focus();
-
-                break;
-
-            }
-
+    function playKeypadFeedback(btn) {
+        if (btn) {
+            btn.classList.add('keypad-pressed');
+            setTimeout(() => btn.classList.remove('keypad-pressed'), 120);
         }
-
+        try {
+            const ctx = getAudioContext();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.frequency.value = 1200;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.08);
+        } catch (e) {}
     }
 
-
-
-    function clearPin() {
-
-        ['pin1', 'pin2', 'pin3', 'pin4', 'pin5'].forEach(id => {
-
-            document.getElementById(id).value = '';
-
-        });
-
-        document.getElementById('pin1').focus();
-
+    function setActiveInput(target) {
+        pinInputs.forEach((input) => input.classList.toggle('pin-input--active', input === target));
     }
 
-
+    function firstEmpty() {
+        return pinInputs.find(input => input.value === '') || pinInputs[pinInputs.length - 1];
+    }
 
     function getEnteredPin() {
-
-        const pin = ['pin1', 'pin2', 'pin3', 'pin4', 'pin5']
-
-            .map(id => document.getElementById(id).value)
-
-            .join('');
-
-        return pin;
-
+        return pinInputs.map(i => i.value).join('');
     }
 
+    function addPin(digit) {
+        const btn = event?.currentTarget;
+        playKeypadFeedback(btn);
+        const target = firstEmpty();
+        if (!target) return;
+        target.value = digit;
+        setActiveInput(target);
+        if (pinInputs.every(i => i.value !== '')) handleContinue();
+    }
 
+    function deletePin() {
+        const btn = event?.currentTarget;
+        playKeypadFeedback(btn);
+        for (let i = pinInputs.length - 1; i >= 0; i--) {
+            if (pinInputs[i].value !== '') {
+                pinInputs[i].value = '';
+                setActiveInput(pinInputs[i]);
+                break;
+            }
+        }
+    }
 
-    const errorModal = document.getElementById('error-modal');
-
-    const errorMessage = document.getElementById('error-message');
-
-    const errorTitle = document.getElementById('error-title');
-
-
+    function clearPin() {
+        const btn = event?.currentTarget;
+        playKeypadFeedback(btn);
+        pinInputs.forEach(i => i.value = '');
+        setActiveInput(pinInputs[0]);
+    }
 
     function showError(message, title = 'Unable to continue') {
-
-        errorTitle.textContent = title;
-
-        errorMessage.textContent = message;
-
-        errorModal.classList.remove('hidden');
-
+        document.getElementById('error-title').textContent = title;
+        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-modal').classList.remove('hidden');
         clearPin();
-
     }
 
-
+    document.querySelectorAll('[data-close-modal]').forEach(btn => btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-close-modal');
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.add('hidden');
+    }));
 
     async function handleContinue() {
-
         const pin = getEnteredPin();
-
         if (pin.length !== 5) {
-
             showError('Please enter your 5-digit PIN.');
-
             return;
-
         }
-
-
-
+        pinLoadingOverlay.classList.remove('hidden');
         try {
-
             const result = await VotingApp.verifyPin(pin);
-            console.log('verifyPin result:', result);
-
             if (!result.valid) {
-
                 showError('The PIN you entered does not exist. Please try again.', 'Invalid PIN');
-
                 return;
-
             }
             if (result.alreadyVoted) {
-
                 showError('This PIN has already been used to vote. Please contact an admin if you believe this is an error.', 'Already voted');
-
                 return;
-
             }
             VotingApp.savePin(pin);
             VotingApp.getDeviceId();
-            // Backend returns { valid, alreadyVoted, role }
-            // Accept both legacy boolean flag `isAdmin` or the `role` string for compatibility
             const isAdmin = (typeof result.isAdmin !== 'undefined') ? result.isAdmin : (result.role === 'admin');
-
-            if (isAdmin) {
-
-                // use assign for clearer navigation and log
-                console.log('Admin PIN detected - redirecting to admin dashboard');
-                window.location.assign('/admin-dashboard');
-
-            } else {
-
-                console.log('User PIN detected - redirecting to king selection');
-                window.location.assign(KING_SELECTION_URL);
-
-            }
-
+            window.location.assign(isAdmin ? '/admin-dashboard' : '/king-selection');
         } catch (err) {
-
             console.error('Error during verifyPin:', err);
             showError(err.message || 'Something went wrong while verifying your PIN.');
-
+        } finally {
+            pinLoadingOverlay.classList.add('hidden');
+            window.scrollTo(0, 0);
         }
-
     }
 
-
-
-
-    document.querySelectorAll('[data-close-modal]').forEach((btn) => {
-
-        btn.addEventListener('click', () => {
-
-            const targetId = btn.getAttribute('data-close-modal');
-
-            const modal = document.getElementById(targetId);
-
-            if (modal) {
-
-                modal.classList.add('hidden');
-
-            }
-
+    document.addEventListener('DOMContentLoaded', () => {
+        pinInputs.forEach((input, idx) => {
+            input.dataset.index = idx;
+            input.addEventListener('focus', () => input.blur());
         });
-
+        setActiveInput(pinInputs[0]);
+        setTimeout(() => window.scrollTo(0, 0), 0);
     });
-
 </script>
 
 </body>
 
 </html>
-

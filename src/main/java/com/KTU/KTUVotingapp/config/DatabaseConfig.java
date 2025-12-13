@@ -2,9 +2,9 @@ package com.KTU.KTUVotingapp.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 import javax.sql.DataSource;
@@ -22,11 +22,8 @@ public class DatabaseConfig {
     @Value("${DATABASE_URL:#{null}}")
     private String databaseUrl;
 
-    @Value("${DATABASE_PASSWORD:#{null}}")
-    private String databasePassword;
-
     @Bean
-    @ConditionalOnProperty(name = "DATABASE_URL")
+    @Primary
     public DataSource dataSource() throws URISyntaxException {
         HikariDataSource dataSource = new HikariDataSource();
 
@@ -40,17 +37,27 @@ public class DatabaseConfig {
             int port = dbUri.getPort() == -1 ? 5432 : dbUri.getPort();
             String database = dbUri.getPath().substring(1); // Remove leading '/'
 
-            // Build JDBC URL
-            String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s", host, port, database);
+            // Build JDBC URL with SSL for Koyeb
+            String jdbcUrl = String.format("jdbc:postgresql://%s:%d/%s?sslmode=require", host, port, database);
+
+            System.out.println("Connecting to database: " + host + ":" + port + "/" + database);
 
             dataSource.setJdbcUrl(jdbcUrl);
             dataSource.setUsername(username);
             dataSource.setPassword(password);
         } else {
-            // Fallback: use individual properties
-            dataSource.setJdbcUrl(System.getenv("SPRING_DATASOURCE_URL"));
-            dataSource.setUsername(System.getenv("SPRING_DATASOURCE_USERNAME"));
-            dataSource.setPassword(databasePassword != null ? databasePassword : System.getenv("SPRING_DATASOURCE_PASSWORD"));
+            // Fallback: use individual properties from environment
+            String url = System.getenv("SPRING_DATASOURCE_URL");
+            String username = System.getenv("SPRING_DATASOURCE_USERNAME");
+            String password = System.getenv("SPRING_DATASOURCE_PASSWORD");
+
+            if (url == null || url.isEmpty()) {
+                throw new RuntimeException("DATABASE_URL or SPRING_DATASOURCE_URL environment variable must be set");
+            }
+
+            dataSource.setJdbcUrl(url);
+            dataSource.setUsername(username);
+            dataSource.setPassword(password);
         }
 
         dataSource.setDriverClassName("org.postgresql.Driver");
